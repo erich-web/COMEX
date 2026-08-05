@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -59,6 +60,7 @@
     <header class="bg-white border-b border-slate-200 px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
       <h1 id="view-title" class="text-lg font-semibold text-slate-900">Painel</h1>
       <div class="flex gap-2">
+        <button id="btn-importar" onclick="openImportModal()" class="hidden items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-medium px-4 py-2 rounded-lg transition"><i data-feather="upload" class="w-4 h-4"></i>Importar Ata</button>
         <button id="btn-nova-ata" onclick="openAtaModal()" class="hidden items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"><i data-feather="plus" class="w-4 h-4"></i>Nova Ata</button>
         <button id="btn-nova-tarefa" onclick="openTaskModal()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"><i data-feather="plus" class="w-4 h-4"></i>Nova Tarefa</button>
       </div>
@@ -202,6 +204,31 @@
   </div>
 </div>
 
+<!-- ============ MODAL IMPORTAR ATA ============ -->
+<div id="import-overlay" class="hidden fixed inset-0 bg-slate-900/50 z-50 overflow-y-auto p-4 md:p-10">
+  <div class="bg-white rounded-xl shadow-xl max-w-2xl mx-auto p-6 relative">
+    <button onclick="closeModal('import-overlay')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-feather="x"></i></button>
+    <h2 class="text-lg font-semibold text-slate-900 mb-1">Importar Ata</h2>
+    <p class="text-sm text-slate-500 mb-5">Envie o PDF da ata (ou cole o texto). A IA arquiva a ata e cria os encaminhamentos com responsável, prazo e pilar automaticamente.</p>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Arquivo PDF da ata</label>
+        <input type="file" id="imp-file" accept="application/pdf" class="w-full text-sm text-slate-600 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-sm file:font-medium hover:file:bg-blue-700 file:cursor-pointer border border-slate-300 rounded-lg p-1.5">
+      </div>
+      <div class="text-xs text-slate-400 text-center">— ou —</div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Texto da ata</label>
+        <textarea id="imp-text" rows="6" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cole aqui o texto completo da ata…"></textarea>
+      </div>
+      <div id="imp-status" class="hidden bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800"></div>
+    </div>
+    <div class="flex gap-2 mt-6">
+      <button id="imp-btn" onclick="processImport()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"><i data-feather="cpu" class="w-4 h-4"></i>Processar e importar</button>
+      <button onclick="closeModal('import-overlay')" class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL LEITURA ============ -->
 <div id="read-overlay" class="hidden fixed inset-0 bg-slate-900/50 z-50 overflow-y-auto p-4 md:p-10">
   <div class="bg-white rounded-xl shadow-xl max-w-3xl mx-auto p-6 relative">
@@ -236,11 +263,14 @@ async function persist(){
     if(!r) showErr('Falha ao salvar. Tente novamente.');
   }catch(e){showErr('Falha ao salvar. Verifique a conexão e tente novamente.');}
 }
-function showErr(msg){
+function showToast(msg,ok){
   const b=document.getElementById('errbox');
-  b.textContent=msg;b.classList.remove('hidden');
-  setTimeout(()=>{b.classList.add('hidden');},5000);
+  b.textContent=msg;
+  b.className='mb-4 text-sm px-4 py-3 rounded-lg border '+(ok?'bg-green-50 border-green-200 text-green-700':'bg-rose-50 border-rose-200 text-rose-700');
+  setTimeout(()=>{b.className='hidden';},6000);
 }
+function showErr(msg){showToast(msg,false);}
+function showOk(msg){showToast(msg,true);}
 
 /* ---------- HELPERS ---------- */
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -278,6 +308,8 @@ document.querySelectorAll('.nav-item').forEach(btn=>{
     document.getElementById('view-title').textContent=VIEW_TITLES[v];
     document.getElementById('btn-nova-ata').classList.toggle('hidden',v!=='atas');
     document.getElementById('btn-nova-ata').classList.toggle('inline-flex',v==='atas');
+    document.getElementById('btn-importar').classList.toggle('hidden',v!=='atas');
+    document.getElementById('btn-importar').classList.toggle('inline-flex',v==='atas');
     document.getElementById('btn-nova-tarefa').classList.toggle('hidden',v==='atas');
     renderAll();
   });
@@ -752,6 +784,98 @@ function openRead(id){
     await persist();renderAll();
   };
   openModal('read-overlay');
+}
+
+/* ---------- IMPORTAÇÃO DE ATA COM IA ---------- */
+const PILAR_MAP={R:'RPE Restaurantes',H:'RPE Hotéis',E:'RPE Empreendimentos',P:'RPE Properties',V:'RPE Eventos',G:'Grupo / Holding'};
+function openImportModal(){
+  document.getElementById('imp-file').value='';
+  document.getElementById('imp-text').value='';
+  const s=document.getElementById('imp-status');
+  s.classList.add('hidden');s.textContent='';
+  openModal('import-overlay');
+}
+function impStatus(msg){
+  const s=document.getElementById('imp-status');
+  s.classList.remove('hidden');s.textContent=msg;
+}
+function fileToB64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('Falha ao ler o arquivo'));
+    r.readAsDataURL(file);
+  });
+}
+async function callClaude(content){
+  const response=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content}]})
+  });
+  const data=await response.json();
+  if(data.error)throw new Error(data.error.message||'Erro na IA');
+  const text=data.content.filter(i=>i.type==='text').map(i=>i.text).join('\n');
+  return {text,stop:data.stop_reason};
+}
+function parseJsonLines(text){
+  const out=[];
+  text.split('\n').forEach(l=>{
+    l=l.trim().replace(/^```json|^```|```$/g,'').trim();
+    if(!l.startsWith('{'))return;
+    try{out.push(JSON.parse(l));}catch(e){/* linha truncada — ignora */}
+  });
+  return out;
+}
+async function processImport(){
+  const file=document.getElementById('imp-file').files[0];
+  const pasted=document.getElementById('imp-text').value.trim();
+  if(!file&&!pasted){showErr('Envie um PDF ou cole o texto da ata.');return;}
+  const btn=document.getElementById('imp-btn');
+  btn.disabled=true;btn.classList.add('opacity-50');
+  try{
+    let docBlock;
+    if(file){
+      impStatus('Lendo o arquivo…');
+      const b64=await fileToB64(file);
+      docBlock={type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}};
+    }else{
+      docBlock={type:'text',text:'ATA:\n\n'+pasted};
+    }
+    impStatus('Extraindo dados da reunião…');
+    const metaRes=await callClaude([docBlock,{type:'text',text:'Você recebeu a ata de uma reunião do Comitê Executivo (COMEX) do Grupo RPE. Responda APENAS com um objeto JSON válido, sem markdown e sem texto extra, no formato: {"data":"YYYY-MM-DD ou null","titulo":"título curto da reunião","resumo":"resumo estruturado e fiel das pautas, decisões e aprovações da reunião, em até 250 palavras"}.'}]);
+    let meta={};
+    try{meta=JSON.parse(metaRes.text.replace(/```json|```/g,'').trim());}catch(e){meta={};}
+    const tasksPrompt=start=>'Extraia desta ata do COMEX do Grupo RPE TODOS os encaminhamentos/atividades com responsáveis e prazos, incluindo os do quadro de atividades ao final, sem repetir itens equivalentes. Responda APENAS com uma tarefa por linha, cada linha sendo um JSON compacto válido: {"t":"título objetivo","r":"responsáveis","p":"YYYY-MM-DD ou null","pi":"R|H|E|P|V|G","n":"observação curta ou vazio"}. pi: R=Restaurantes, H=Hotéis, E=Empreendimentos, P=Properties, V=Eventos, G=Grupo/Holding. Em "r", use os nomes oficiais quando identificáveis: Felipe, Luiz, João, Erich, Lucas, Deise, Isabela, Ike, Marília, Bruno; caso contrário, mantenha como está no documento. Sem markdown, sem numeração, sem texto extra. Liste na ordem do documento'+(start>0?', continuando a partir do encaminhamento de número '+(start+1)+' (os '+start+' primeiros já foram extraídos, não os repita)':'')+'.';
+    let tasks=[];let guard=0;
+    while(guard<6){
+      guard++;
+      impStatus('Extraindo encaminhamentos… ('+tasks.length+' encontrados)');
+      const r=await callClaude([docBlock,{type:'text',text:tasksPrompt(tasks.length)}]);
+      const batch=parseJsonLines(r.text);
+      tasks=tasks.concat(batch);
+      if(r.stop!=='max_tokens'||!batch.length)break;
+    }
+    if(!tasks.length&&!meta.resumo){throw new Error('Não consegui extrair conteúdo desta ata.');}
+    const ataData=meta.data||todayStr();
+    if(DB.atas.some(a=>a.data===ataData)){
+      if(!confirm('Já existe uma ata arquivada em '+fmtDate(ataData)+'. Importar mesmo assim?')){
+        btn.disabled=false;btn.classList.remove('opacity-50');impStatus('Importação cancelada.');return;
+      }
+    }
+    const ata={id:uid(),criadaEm:todayStr(),data:ataData,titulo:meta.titulo||'COMEX',conteudo:pasted||meta.resumo||''};
+    DB.atas.push(ata);
+    tasks.forEach(x=>{
+      if(!x.t)return;
+      DB.tasks.push({id:uid(),status:'pendente',criadaEm:todayStr(),titulo:String(x.t),responsavel:String(x.r||''),prazo:(x.p&&/^\d{4}-\d{2}-\d{2}$/.test(x.p))?x.p:null,pilar:PILAR_MAP[x.pi]||'Grupo / Holding',ataId:ata.id,notas:String(x.n||'')});
+    });
+    await persist();renderAll();
+    closeModal('import-overlay');
+    showOk('Ata de '+fmtDate(ata.data)+' arquivada com '+tasks.length+' encaminhamentos criados. Revise responsáveis e prazos no Painel.');
+  }catch(e){
+    impStatus('Erro: '+e.message+' — tente novamente ou cole o texto da ata.');
+  }
+  btn.disabled=false;btn.classList.remove('opacity-50');
 }
 
 /* ---------- MODALS ---------- */
