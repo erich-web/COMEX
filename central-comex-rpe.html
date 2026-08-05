@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central do Comex — Grupo RPE</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.2/feather.min.js"></script>
+<style>
+  body{font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;}
+  .nav-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 14px;border-radius:8px;font-size:14px;color:#475569;transition:all .15s;}
+  .nav-item:hover{background:#F1F5F9;color:#0F172A;}
+  .nav-item.active{background:#EFF6FF;color:#1D4ED8;font-weight:600;}
+  .nav-item svg{width:18px;height:18px;}
+  .view{display:none;}
+  .view.active{display:block;}
+  input[type=date]{min-height:42px;}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+<div class="flex min-h-screen">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="hidden md:flex md:flex-col w-64 bg-white border-r border-slate-200 shrink-0">
+    <div class="p-6 border-b border-slate-200">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Grupo RPE</div>
+      <div class="text-lg font-bold text-slate-900 mt-1">Central do Comex</div>
+      <div class="text-xs text-slate-400 mt-1">Comitê Executivo · terças, 9h</div>
+    </div>
+    <nav class="p-4 space-y-1 flex-1">
+      <button class="nav-item active" data-view="painel"><i data-feather="layout"></i>Painel</button>
+      <button class="nav-item" data-view="atas"><i data-feather="file-text"></i>Atas</button>
+      <button class="nav-item" data-view="pessoas"><i data-feather="users"></i>Por Pessoa</button>
+      <button class="nav-item" data-view="historico"><i data-feather="trending-up"></i>Histórico</button>
+      <button class="nav-item" data-view="cobranca"><i data-feather="send"></i>Cobrança</button>
+    </nav>
+    <div class="p-4 border-t border-slate-200 text-xs text-slate-400">
+      Decisões viram compromissos.<br>Compromissos viram entrega.
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- Mobile nav -->
+    <div class="md:hidden bg-white border-b border-slate-200 px-4 pt-4">
+      <div class="text-base font-bold text-slate-900">Central do Comex <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 ml-1">Grupo RPE</span></div>
+      <div class="flex gap-1 mt-3 overflow-x-auto pb-2">
+        <button class="nav-item active whitespace-nowrap" data-view="painel"><i data-feather="layout"></i>Painel</button>
+        <button class="nav-item whitespace-nowrap" data-view="atas"><i data-feather="file-text"></i>Atas</button>
+        <button class="nav-item whitespace-nowrap" data-view="pessoas"><i data-feather="users"></i>Pessoas</button>
+        <button class="nav-item whitespace-nowrap" data-view="historico"><i data-feather="trending-up"></i>Histórico</button>
+        <button class="nav-item whitespace-nowrap" data-view="cobranca"><i data-feather="send"></i>Cobrança</button>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+      <h1 id="view-title" class="text-lg font-semibold text-slate-900">Painel</h1>
+      <div class="flex gap-2">
+        <button id="btn-nova-ata" onclick="openAtaModal()" class="hidden items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"><i data-feather="plus" class="w-4 h-4"></i>Nova Ata</button>
+        <button id="btn-nova-tarefa" onclick="openTaskModal()" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"><i data-feather="plus" class="w-4 h-4"></i>Nova Tarefa</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 lg:p-8">
+      <div id="errbox" class="hidden mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-lg"></div>
+      <div id="loading" class="text-slate-400 text-sm py-12 text-center">Carregando a central…</div>
+
+      <div id="app" class="hidden">
+
+        <!-- ============ PAINEL ============ -->
+        <div class="view active" id="view-painel">
+          <div id="late-alert"></div>
+          <div id="stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+
+          <div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-end">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Responsável</label>
+              <select id="f-resp" class="border border-slate-300 rounded-lg text-sm px-3 py-2 bg-white min-w-[160px]"><option value="">Todos</option></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Pilar</label>
+              <select id="f-pilar" class="border border-slate-300 rounded-lg text-sm px-3 py-2 bg-white min-w-[160px]"><option value="">Todos</option></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+              <select id="f-status" class="border border-slate-300 rounded-lg text-sm px-3 py-2 bg-white min-w-[140px]">
+                <option value="abertas">Abertas</option>
+                <option value="todas">Todas</option>
+                <option value="concluida">Concluídas</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="task-groups"></div>
+        </div>
+
+        <!-- ============ ATAS ============ -->
+        <div class="view" id="view-atas">
+          <div id="ata-list" class="grid gap-4 md:grid-cols-2"></div>
+        </div>
+
+        <!-- ============ PESSOAS ============ -->
+        <div class="view" id="view-pessoas">
+          <div id="pessoas-grid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+        </div>
+
+        <!-- ============ HISTÓRICO ============ -->
+        <div class="view" id="view-historico">
+          <div id="hist-list" class="bg-white border border-slate-200 rounded-xl overflow-hidden"></div>
+        </div>
+
+        <!-- ============ COBRANÇA ============ -->
+        <div class="view" id="view-cobranca">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-800">
+            Cadastre o e-mail e o WhatsApp de cada responsável uma única vez (fica salvo). Depois, a cada cobrança, os botões abrem a mensagem pronta com as pendências atuais — é só enviar.
+          </div>
+          <div id="cobranca-list" class="grid gap-4 md:grid-cols-2"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ MODAL TAREFA ============ -->
+<div id="task-overlay" class="hidden fixed inset-0 bg-slate-900/50 z-50 overflow-y-auto p-4 md:p-10">
+  <div class="bg-white rounded-xl shadow-xl max-w-2xl mx-auto p-6 relative">
+    <button onclick="closeModal('task-overlay')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-feather="x"></i></button>
+    <h2 id="task-modal-title" class="text-lg font-semibold text-slate-900 mb-5">Nova Tarefa</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Tarefa</label>
+        <input id="t-titulo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="O que precisa ser entregue">
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Responsável</label>
+          <input id="t-resp" list="resp-list" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Quem entrega">
+          <datalist id="resp-list">
+            <option value="Felipe"><option value="Luiz"><option value="João">
+            <option value="Erich"><option value="Lucas"><option value="Deise">
+            <option value="Isabela"><option value="Ike"><option value="Marília">
+            <option value="Bruno">
+          </datalist>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Prazo</label>
+          <input type="date" id="t-prazo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Pilar / Frente</label>
+          <select id="t-pilar" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option>Grupo / Holding</option><option>RPE Restaurantes</option><option>RPE Hotéis</option>
+            <option>RPE Empreendimentos</option><option>RPE Properties</option><option>RPE Eventos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Reunião de origem</label>
+          <select id="t-ata" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">— Sem vínculo —</option></select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Notas <span class="text-slate-400 font-normal">(opcional)</span></label>
+        <input id="t-notas" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contexto, condição de entrega…">
+      </div>
+    </div>
+    <div class="flex gap-2 mt-6">
+      <button onclick="saveTask()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Salvar</button>
+      <button onclick="closeModal('task-overlay')" class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL ATA ============ -->
+<div id="ata-overlay" class="hidden fixed inset-0 bg-slate-900/50 z-50 overflow-y-auto p-4 md:p-10">
+  <div class="bg-white rounded-xl shadow-xl max-w-2xl mx-auto p-6 relative">
+    <button onclick="closeModal('ata-overlay')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-feather="x"></i></button>
+    <h2 id="ata-modal-title" class="text-lg font-semibold text-slate-900 mb-5">Nova Ata</h2>
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Data da reunião</label>
+        <input type="date" id="a-data" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Título</label>
+        <input id="a-titulo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex.: Comex — pauta expansão">
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Conteúdo da ata</label>
+      <textarea id="a-conteudo" rows="10" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cole aqui o texto completo da ata: pautas discutidas, decisões, encaminhamentos…"></textarea>
+    </div>
+    <div class="flex gap-2 mt-6">
+      <button onclick="saveAta()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Salvar Ata</button>
+      <button onclick="closeModal('ata-overlay')" class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL LEITURA ============ -->
+<div id="read-overlay" class="hidden fixed inset-0 bg-slate-900/50 z-50 overflow-y-auto p-4 md:p-10">
+  <div class="bg-white rounded-xl shadow-xl max-w-3xl mx-auto p-6 relative">
+    <button onclick="closeModal('read-overlay')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-feather="x"></i></button>
+    <div id="r-date" class="text-xs font-semibold uppercase tracking-wider text-blue-600"></div>
+    <h2 id="r-title" class="text-xl font-bold text-slate-900 mt-1 mb-4"></h2>
+    <div id="r-tasks" class="mb-4"></div>
+    <div id="r-content" class="bg-slate-50 border border-slate-200 rounded-lg p-5 text-sm leading-relaxed whitespace-pre-wrap text-slate-700"></div>
+    <div class="flex gap-2 mt-6">
+      <button id="r-edit" class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">Editar</button>
+      <button id="r-del" class="text-rose-600 hover:bg-rose-50 text-sm font-medium px-4 py-2 rounded-lg transition">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY='comex-central-v1';
+let DB={tasks:[],atas:[]};
+let editingTaskId=null, editingAtaId=null;
+
+/* ---------- STORAGE ---------- */
+async function loadDB(){
+  try{
+    const r=await window.storage.get(KEY);
+    if(r&&r.value){DB=JSON.parse(r.value);}
+  }catch(e){/* primeira utilização */}
+  DB.tasks=DB.tasks||[]; DB.atas=DB.atas||[]; DB.contacts=DB.contacts||{};
+}
+async function persist(){
+  try{
+    const r=await window.storage.set(KEY,JSON.stringify(DB));
+    if(!r) showErr('Falha ao salvar. Tente novamente.');
+  }catch(e){showErr('Falha ao salvar. Verifique a conexão e tente novamente.');}
+}
+function showErr(msg){
+  const b=document.getElementById('errbox');
+  b.textContent=msg;b.classList.remove('hidden');
+  setTimeout(()=>{b.classList.add('hidden');},5000);
+}
+
+/* ---------- HELPERS ---------- */
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function fmtDate(iso){
+  if(!iso)return '';
+  const [y,m,d]=iso.split('-');
+  const ms=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return d+' '+ms[parseInt(m)-1]+' '+y;
+}
+function endOfWeek(){
+  const d=new Date();const diff=(7-d.getDay())%7;
+  d.setDate(d.getDate()+diff);
+  return d.toISOString().slice(0,10);
+}
+function isOpen(t){return t.status!=='concluida';}
+function splitNames(s){
+  if(!s)return['Sem responsável'];
+  return s.split(/\s*(?:,|\/)\s*|\s+e\s+/).map(x=>x.trim()).filter(Boolean);
+}
+function daysLate(prazo){
+  const ms=new Date(todayStr())-new Date(prazo);
+  return Math.max(1,Math.round(ms/86400000));
+}
+
+/* ---------- NAV ---------- */
+const VIEW_TITLES={painel:'Painel',atas:'Atas do Comitê',pessoas:'Por Pessoa',historico:'Histórico de Entrega',cobranca:'Cobrança de Pendências'};
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const v=btn.dataset.view;
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+    document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+    document.getElementById('view-'+v).classList.add('active');
+    document.getElementById('view-title').textContent=VIEW_TITLES[v];
+    document.getElementById('btn-nova-ata').classList.toggle('hidden',v!=='atas');
+    document.getElementById('btn-nova-ata').classList.toggle('inline-flex',v==='atas');
+    document.getElementById('btn-nova-tarefa').classList.toggle('hidden',v==='atas');
+    renderAll();
+  });
+});
+
+/* ---------- FILTERS ---------- */
+['f-resp','f-pilar','f-status'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',renderPainel);
+});
+function refreshFilterOptions(){
+  const resps=PEOPLE.filter(p=>DB.tasks.some(t=>taskPeople(t).includes(p)));
+  const pilares=[...new Set(DB.tasks.map(t=>t.pilar).filter(Boolean))].sort();
+  const fr=document.getElementById('f-resp'),fp=document.getElementById('f-pilar');
+  const vr=fr.value,vp=fp.value;
+  fr.innerHTML='<option value="">Todos</option>'+resps.map(r=>'<option>'+esc(r)+'</option>').join('');
+  fp.innerHTML='<option value="">Todos</option>'+pilares.map(p=>'<option>'+esc(p)+'</option>').join('');
+  fr.value=vr;fp.value=vp;
+}
+
+/* ---------- BADGES ---------- */
+function pilarBadge(p){
+  return p?'<span class="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600">'+esc(p)+'</span>':'';
+}
+
+/* ---------- PESSOAS OFICIAIS ---------- */
+const PEOPLE=['Felipe','Luiz','João','Erich','Lucas','Deise','Isabela','Ike','Marília','Bruno'];
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const ALIAS={'isa':'Isabela','marilia':'Marília','joao':'João'};
+function canonPerson(n){
+  const k=norm(n);
+  const hit=PEOPLE.find(p=>norm(p)===k);
+  if(hit)return hit;
+  return ALIAS[k]||null;
+}
+function taskPeople(t){
+  return [...new Set(splitNames(t.responsavel).map(canonPerson).filter(Boolean))];
+}
+function hasOwner(t){return taskPeople(t).length>0;}
+
+/* ---------- ALERTAS ---------- */
+let laOpen=false;
+function toggleLA(){laOpen=!laOpen;renderPainel();}
+function renderLateAlert(){
+  const el=document.getElementById('late-alert');
+  const today=todayStr();
+  const late=DB.tasks.filter(t=>isOpen(t)&&t.prazo&&t.prazo<today)
+    .sort((a,b)=>(a.prazo||'').localeCompare(b.prazo||''));
+  const noOwner=DB.tasks.filter(t=>isOpen(t)&&!hasOwner(t));
+  let html='';
+  if(late.length){
+    html+='<div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-3">'+
+      '<div class="flex items-center justify-between gap-3 flex-wrap">'+
+        '<div class="flex items-center gap-2 text-amber-800 font-semibold text-sm">'+
+          '<i data-feather="alert-triangle" class="w-5 h-5"></i>'+
+          late.length+' tarefa'+(late.length===1?'':'s')+' em atraso — cobrar no próximo Comex'+
+        '</div>'+
+        '<button onclick="toggleLA()" class="text-xs font-semibold text-amber-800 underline underline-offset-2">'+(laOpen?'Ocultar lista':'Ver lista')+'</button>'+
+      '</div>'+
+      (laOpen?
+      '<ul class="mt-3 divide-y divide-amber-200/60 max-h-56 overflow-y-auto pr-1">'+
+      late.map(t=>{
+        const d=daysLate(t.prazo);
+        return '<li class="py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">'+
+          '<span class="font-medium text-slate-800 flex-1 min-w-[180px]">'+esc(t.titulo)+'</span>'+
+          '<span class="text-xs font-semibold text-slate-600">'+esc(t.responsavel||'Sem responsável')+'</span>'+
+          '<span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-700">'+d+'d de atraso</span>'+
+        '</li>';
+      }).join('')+'</ul>':'')+
+    '</div>';
+  }
+  if(noOwner.length){
+    html+='<div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-3">'+
+      '<div class="flex items-center gap-2 text-amber-800 font-semibold text-sm">'+
+        '<i data-feather="user-x" class="w-5 h-5"></i>'+
+        noOwner.length+' tarefa'+(noOwner.length===1?'':'s')+' sem responsável definido — defina quem entrega'+
+      '</div>'+
+      '<ul class="mt-3 divide-y divide-amber-200/60 max-h-40 overflow-y-auto pr-1">'+
+      noOwner.map(t=>
+        '<li class="py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">'+
+          '<span class="font-medium text-slate-800 flex-1 min-w-[180px]">'+esc(t.titulo)+'</span>'+
+          (t.responsavel?'<span class="text-xs text-slate-500">atual: '+esc(t.responsavel)+'</span>':'')+
+          '<button onclick="openTaskModal(\''+t.id+'\')" class="text-xs font-semibold text-blue-600 hover:underline">Definir responsável</button>'+
+        '</li>'
+      ).join('')+'</ul>'+
+    '</div>';
+  }
+  el.innerHTML=html?'<div class="mb-3">'+html+'</div>':'';
+}
+
+/* ---------- STATS ---------- */
+function statCard(num,label,cls){
+  return '<div class="bg-white border border-slate-200 rounded-xl p-5">'+
+    '<div class="text-3xl font-bold '+cls+'">'+num+'</div>'+
+    '<div class="text-xs font-medium text-slate-500 mt-1">'+label+'</div></div>';
+}
+function renderStats(){
+  const today=todayStr(),eow=endOfWeek();
+  const open=DB.tasks.filter(isOpen);
+  const late=open.filter(t=>t.prazo&&t.prazo<today);
+  const week=open.filter(t=>t.prazo&&t.prazo>=today&&t.prazo<=eow);
+  const done=DB.tasks.filter(t=>t.status==='concluida');
+  document.getElementById('stats').innerHTML=
+    statCard(late.length,'Atrasadas',late.length?'text-rose-600':'text-slate-900')+
+    statCard(week.length,'Vencem esta semana',week.length?'text-amber-600':'text-slate-900')+
+    statCard(open.length,'Abertas no total','text-slate-900')+
+    statCard(done.length,'Concluídas','text-green-600');
+}
+
+/* ---------- TASK TABLE ---------- */
+function taskRow(t){
+  const today=todayStr();
+  const late=isOpen(t)&&t.prazo&&t.prazo<today;
+  const ata=DB.atas.find(a=>a.id===t.ataId);
+  const done=t.status==='concluida';
+  return '<tr class="hover:bg-blue-50 transition '+(done?'opacity-60':'')+'">'+
+    '<td class="px-4 py-3 w-10 align-top">'+
+      '<button onclick="toggleTask(\''+t.id+'\')" class="w-5 h-5 rounded-full border-2 flex items-center justify-center '+(done?'bg-green-500 border-green-500 text-white':'border-slate-300 hover:border-blue-500')+'">'+(done?'<i data-feather="check" class="w-3 h-3"></i>':'')+'</button></td>'+
+    '<td class="px-2 py-3 align-top">'+
+      '<div class="text-sm font-medium text-slate-800 '+(done?'line-through':'')+'">'+esc(t.titulo)+'</div>'+
+      (t.notas?'<div class="text-xs text-slate-500 mt-0.5">'+esc(t.notas)+'</div>':'')+
+      (ata?'<button onclick="openRead(\''+ata.id+'\')" class="text-xs text-blue-600 hover:underline mt-0.5">Ata de '+fmtDate(ata.data)+'</button>':'')+
+    '</td>'+
+    '<td class="px-4 py-3 align-top text-sm text-slate-600 whitespace-nowrap">'+esc(t.responsavel||'—')+'</td>'+
+    '<td class="px-4 py-3 align-top hidden lg:table-cell">'+pilarBadge(t.pilar)+'</td>'+
+    '<td class="px-4 py-3 align-top whitespace-nowrap">'+
+      (t.prazo?'<span class="text-sm '+(late?'text-rose-600 font-semibold':'text-slate-600')+'">'+fmtDate(t.prazo)+'</span>':'<span class="text-sm text-slate-400">—</span>')+
+      (late?'<span class="ml-2 inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-700">'+daysLate(t.prazo)+'d</span>':'')+
+    '</td>'+
+    '<td class="px-4 py-3 align-top text-right whitespace-nowrap">'+
+      '<button onclick="openTaskModal(\''+t.id+'\')" class="text-slate-400 hover:text-blue-600 p-1"><i data-feather="edit-2" class="w-4 h-4"></i></button>'+
+      '<button onclick="delTask(\''+t.id+'\')" class="text-slate-400 hover:text-rose-600 p-1"><i data-feather="trash-2" class="w-4 h-4"></i></button>'+
+    '</td></tr>';
+}
+function taskTable(rows){
+  return '<div class="bg-white border border-slate-200 rounded-xl overflow-x-auto mb-6">'+
+    '<table class="w-full min-w-[640px]">'+
+    '<thead><tr class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">'+
+    '<th class="px-4 py-3"></th><th class="px-2 py-3">Tarefa</th><th class="px-4 py-3">Responsável</th>'+
+    '<th class="px-4 py-3 hidden lg:table-cell">Pilar</th><th class="px-4 py-3">Prazo</th><th class="px-4 py-3"></th>'+
+    '</tr></thead><tbody class="divide-y divide-slate-100">'+rows+'</tbody></table></div>';
+}
+function renderPainel(){
+  renderLateAlert();renderStats();refreshFilterOptions();
+  const fr=document.getElementById('f-resp').value;
+  const fp=document.getElementById('f-pilar').value;
+  const fs=document.getElementById('f-status').value;
+  let list=DB.tasks.slice();
+  if(fr)list=list.filter(t=>taskPeople(t).includes(fr));
+  if(fp)list=list.filter(t=>t.pilar===fp);
+  if(fs==='abertas')list=list.filter(isOpen);
+  if(fs==='concluida')list=list.filter(t=>t.status==='concluida');
+  const today=todayStr(),eow=endOfWeek();
+  const byPrazo=(a,b)=>(a.prazo||'9999').localeCompare(b.prazo||'9999');
+  const groups=[
+    ['Atrasadas',list.filter(t=>isOpen(t)&&t.prazo&&t.prazo<today).sort(byPrazo)],
+    ['Esta semana',list.filter(t=>isOpen(t)&&t.prazo&&t.prazo>=today&&t.prazo<=eow).sort(byPrazo)],
+    ['Próximas',list.filter(t=>isOpen(t)&&t.prazo&&t.prazo>eow).sort(byPrazo)],
+    ['Sem prazo',list.filter(t=>isOpen(t)&&!t.prazo)],
+    ['Concluídas',list.filter(t=>t.status==='concluida').sort((a,b)=>(b.concluidaEm||'').localeCompare(a.concluidaEm||''))]
+  ];
+  const el=document.getElementById('task-groups');
+  if(!list.length){
+    el.innerHTML='<div class="bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-400">Nenhuma tarefa por aqui ainda. Registre os encaminhamentos da última reunião do Comex — ou mande a ata no chat, que eu estruturo para você.</div>';
+    feather.replace();return;
+  }
+  el.innerHTML=groups.filter(g=>g[1].length).map(g=>
+    '<h3 class="text-sm font-semibold text-slate-700 mb-2 flex items-baseline gap-2">'+g[0]+
+    '<span class="text-xs font-normal text-slate-400">'+g[1].length+' '+(g[1].length===1?'item':'itens')+'</span></h3>'+
+    taskTable(g[1].map(taskRow).join(''))
+  ).join('');
+  feather.replace();
+}
+
+/* ---------- ATAS ---------- */
+function renderAtas(){
+  const el=document.getElementById('ata-list');
+  if(!DB.atas.length){
+    el.innerHTML='<div class="md:col-span-2 bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-400">Nenhuma ata arquivada. Registre a primeira — o histórico do comitê começa aqui.</div>';
+    return;
+  }
+  const sorted=DB.atas.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  el.innerHTML=sorted.map(a=>{
+    const linked=DB.tasks.filter(t=>t.ataId===a.id);
+    const done=linked.filter(t=>t.status==='concluida').length;
+    const full=linked.length&&done===linked.length;
+    return '<div onclick="openRead(\''+a.id+'\')" class="bg-white border border-slate-200 rounded-xl p-5 cursor-pointer hover:border-blue-400 hover:shadow-sm transition">'+
+      '<div class="text-xs font-semibold uppercase tracking-wider text-blue-600">'+fmtDate(a.data)+'</div>'+
+      '<h3 class="font-semibold text-slate-900 mt-1">'+esc(a.titulo||'Comitê Executivo')+'</h3>'+
+      '<p class="text-sm text-slate-500 mt-2 line-clamp-2">'+esc((a.conteudo||'').slice(0,200))+'</p>'+
+      '<div class="flex gap-2 mt-3">'+
+        '<span class="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600">'+linked.length+' encaminhamento'+(linked.length===1?'':'s')+'</span>'+
+        (linked.length?'<span class="inline-flex px-2 py-0.5 rounded-md text-xs font-medium '+(full?'bg-green-100 text-green-700':'bg-slate-100 text-slate-600')+'">'+done+'/'+linked.length+' entregues</span>':'')+
+      '</div></div>';
+  }).join('');
+}
+
+/* ---------- PESSOAS ---------- */
+function personStats(ts){
+  const today=todayStr();
+  const open=ts.filter(isOpen);
+  const done=ts.filter(t=>t.status==='concluida');
+  const lateOpen=open.filter(t=>t.prazo&&t.prazo<today);
+  const doneLate=done.filter(t=>t.prazo&&t.concluidaEm&&t.concluidaEm>t.prazo);
+  const doneOnTime=done.length-doneLate.length;
+  const comPrazo=ts.filter(t=>t.prazo).length;
+  const entrega=ts.length?Math.round(done.length/ts.length*100):0;
+  const atraso=comPrazo?Math.round((lateOpen.length+doneLate.length)/comPrazo*100):0;
+  const avaliaveis=done.length+lateOpen.length;
+  const score=avaliaveis?Math.round((doneOnTime*1+doneLate.length*0.6)/avaliaveis*100):null;
+  return {total:ts.length,open:open.length,done:done.length,lateOpen:lateOpen.length,entrega,atraso,score};
+}
+function scoreBadge(s){
+  if(s===null)return '<span class="inline-flex px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-500">—</span>';
+  const cls=s>=80?'bg-green-100 text-green-700':(s>=50?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-700');
+  return '<span class="inline-flex px-2.5 py-1 rounded-md text-xs font-bold '+cls+'">'+s+'</span>';
+}
+function renderPessoas(){
+  const el=document.getElementById('pessoas-grid');
+  const byResp={};
+  DB.tasks.forEach(t=>{
+    taskPeople(t).forEach(n=>{
+      (byResp[n]=byResp[n]||[]).push(t);
+    });
+  });
+  const names=Object.keys(byResp);
+  if(!names.length){
+    el.innerHTML='<div class="sm:col-span-2 xl:col-span-3 bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-400">Sem tarefas registradas ainda.</div>';
+    return;
+  }
+  const rows=names.map(n=>({nome:n,ts:byResp[n],st:personStats(byResp[n])}))
+    .sort((a,b)=>{
+      if(a.st.score===null&&b.st.score===null)return a.nome.localeCompare(b.nome);
+      if(a.st.score===null)return 1;
+      if(b.st.score===null)return -1;
+      return b.st.score-a.st.score||a.nome.localeCompare(b.nome);
+    });
+  el.innerHTML=rows.map(r=>{
+    const s=r.st;
+    return '<div class="bg-white border border-slate-200 rounded-xl p-5">'+
+      '<div class="flex items-start justify-between gap-3">'+
+        '<h3 class="font-semibold text-slate-900">'+esc(r.nome)+'</h3>'+
+        '<div class="text-right"><div class="text-[10px] font-medium uppercase tracking-wider text-slate-400">Score</div>'+scoreBadge(s.score)+'</div>'+
+      '</div>'+
+      '<div class="mt-3 space-y-1.5 text-sm">'+
+        '<div class="flex justify-between"><span class="text-slate-500">Abertas</span><span class="font-semibold text-slate-800">'+s.open+'</span></div>'+
+        '<div class="flex justify-between"><span class="text-slate-500">Atrasadas</span><span class="font-semibold '+(s.lateOpen?'text-rose-600':'text-slate-800')+'">'+s.lateOpen+'</span></div>'+
+        '<div class="flex justify-between"><span class="text-slate-500">Entregues</span><span class="font-semibold text-green-600">'+s.done+'</span></div>'+
+        '<div class="flex justify-between"><span class="text-slate-500">Taxa de entrega</span><span class="font-semibold text-green-600">'+s.entrega+'%</span></div>'+
+        '<div class="flex justify-between"><span class="text-slate-500">Taxa de atraso</span><span class="font-semibold '+(s.atraso?'text-rose-600':'text-slate-800')+'">'+s.atraso+'%</span></div>'+
+      '</div>'+
+      '<div class="mt-4 h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full '+(s.score===null?'bg-slate-300':(s.score>=80?'bg-green-500':(s.score>=50?'bg-amber-500':'bg-rose-500')))+' rounded-full" style="width:'+(s.score===null?0:s.score)+'%;"></div></div>'+
+      '<div class="flex justify-between text-xs mt-1.5"><span class="text-slate-400">Produtividade</span><span class="font-semibold text-slate-600">'+(s.score===null?'sem histórico':s.score+' / 100')+'</span></div>'+
+    '</div>';
+  }).join('')+
+  '<div class="sm:col-span-2 xl:col-span-3 text-xs text-slate-400 leading-relaxed mt-2">'+
+    '<span class="font-semibold text-slate-500">Como calculamos:</span> '+
+    'Taxa de entrega = concluídas ÷ total de tarefas da pessoa. '+
+    'Taxa de atraso = (abertas vencidas + concluídas após o prazo) ÷ tarefas com prazo. '+
+    'Score de produtividade (0–100) considera apenas tarefas já avaliáveis: entrega no prazo vale 1,0, entrega com atraso vale 0,6 e tarefa vencida sem entrega vale 0. Pessoas só com tarefas em dia e nada concluído aparecem como "sem histórico".'+
+  '</div>';
+}
+
+/* ---------- HISTÓRICO ---------- */
+function renderHistorico(){
+  const el=document.getElementById('hist-list');
+  const sorted=DB.atas.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  if(!sorted.length){
+    el.innerHTML='<div class="p-10 text-center text-sm text-slate-400">O histórico aparece conforme as atas forem arquivadas com encaminhamentos vinculados.</div>';
+    return;
+  }
+  el.innerHTML='<table class="w-full min-w-[560px]">'+
+    '<thead><tr class="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">'+
+    '<th class="px-5 py-3">Reunião</th><th class="px-5 py-3">Encaminhamentos</th><th class="px-5 py-3 w-1/3">Entrega</th><th class="px-5 py-3 text-right">%</th></tr></thead>'+
+    '<tbody class="divide-y divide-slate-100">'+
+    sorted.map(a=>{
+      const linked=DB.tasks.filter(t=>t.ataId===a.id);
+      const done=linked.filter(t=>t.status==='concluida').length;
+      const pct=linked.length?Math.round(done/linked.length*100):0;
+      return '<tr class="hover:bg-blue-50 transition cursor-pointer" onclick="openRead(\''+a.id+'\')">'+
+        '<td class="px-5 py-3"><div class="text-sm font-medium text-slate-800">'+fmtDate(a.data)+'</div><div class="text-xs text-slate-500">'+esc(a.titulo||'Comitê Executivo')+'</div></td>'+
+        '<td class="px-5 py-3 text-sm text-slate-600">'+done+'/'+linked.length+' entregues</td>'+
+        '<td class="px-5 py-3"><div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-green-500 rounded-full" style="width:'+pct+'%;"></div></div></td>'+
+        '<td class="px-5 py-3 text-right text-sm font-semibold '+(linked.length?(pct>=80?'text-green-600':'text-slate-800'):'text-slate-400')+'">'+(linked.length?pct+'%':'—')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+/* ---------- COBRANÇA ---------- */
+let COB=[];
+function buildMsg(nome,ts){
+  const today=todayStr();
+  const late=ts.filter(t=>t.prazo&&t.prazo<today).sort((a,b)=>a.prazo.localeCompare(b.prazo));
+  const open=ts.filter(t=>!t.prazo||t.prazo>=today).sort((a,b)=>(a.prazo||'9999').localeCompare(b.prazo||'9999'));
+  let m='Lembretes do Comex — Grupo RPE\n\nOlá, '+nome+'! Resumo das suas pendências:\n';
+  if(late.length){
+    m+='\n⚠️ ATRASADAS:\n'+late.map(t=>'• '+t.titulo+' (prazo '+fmtDate(t.prazo)+' — '+daysLate(t.prazo)+'d de atraso)').join('\n')+'\n';
+  }
+  if(open.length){
+    m+='\n📌 EM ABERTO:\n'+open.map(t=>'• '+t.titulo+(t.prazo?' (prazo '+fmtDate(t.prazo)+')':' (prazo a definir)')).join('\n')+'\n';
+  }
+  m+='\nQualquer trava, me avisa que destravamos juntos. Obrigado!\n— Erich';
+  return m;
+}
+function cobSave(i,field,val){
+  const n=COB[i].nome;
+  DB.contacts[n]=DB.contacts[n]||{email:'',phone:''};
+  DB.contacts[n][field]=val.trim();
+  persist();
+}
+function cobWa(i){
+  const c=DB.contacts[COB[i].nome]||{};
+  if(!c.phone){showErr('Cadastre o WhatsApp de '+COB[i].nome+' no campo do card.');return;}
+  let d=c.phone.replace(/\D/g,'');
+  if(d.length<=11)d='55'+d;
+  window.open('https://api.whatsapp.com/send?phone='+d+'&text='+encodeURIComponent(buildMsg(COB[i].nome,COB[i].tasks)),'_blank');
+}
+function cobMail(i){
+  const c=DB.contacts[COB[i].nome]||{};
+  if(!c.email){showErr('Cadastre o e-mail de '+COB[i].nome+' no campo do card.');return;}
+  window.open('mailto:'+c.email+'?subject='+encodeURIComponent('Lembretes do Comex — suas pendências')+'&body='+encodeURIComponent(buildMsg(COB[i].nome,COB[i].tasks)),'_self');
+}
+async function cobCopy(i){
+  try{
+    await navigator.clipboard.writeText(buildMsg(COB[i].nome,COB[i].tasks));
+    showErr('Mensagem de '+COB[i].nome+' copiada.');
+  }catch(e){showErr('Não foi possível copiar automaticamente.');}
+}
+function renderCobranca(){
+  const el=document.getElementById('cobranca-list');
+  const today=todayStr();
+  const byResp={};
+  DB.tasks.filter(isOpen).forEach(t=>{
+    taskPeople(t).forEach(n=>{
+      (byResp[n]=byResp[n]||[]).push(t);
+    });
+  });
+  COB=Object.keys(byResp).map(n=>({nome:n,tasks:byResp[n]}))
+    .sort((a,b)=>{
+      const la=a.tasks.filter(t=>t.prazo&&t.prazo<today).length;
+      const lb=b.tasks.filter(t=>t.prazo&&t.prazo<today).length;
+      return lb-la||b.tasks.length-a.tasks.length;
+    });
+  if(!COB.length){
+    el.innerHTML='<div class="md:col-span-2 bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-400">Nenhuma pendência aberta — nada a cobrar. 🎉</div>';
+    return;
+  }
+  el.innerHTML=COB.map((g,i)=>{
+    const c=DB.contacts[g.nome]||{email:'',phone:''};
+    const late=g.tasks.filter(t=>t.prazo&&t.prazo<today).length;
+    return '<div class="bg-white border border-slate-200 rounded-xl p-5">'+
+      '<div class="flex items-start justify-between gap-3">'+
+        '<div><h3 class="font-semibold text-slate-900">'+esc(g.nome)+'</h3>'+
+        '<div class="flex gap-2 mt-1">'+
+          '<span class="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600">'+g.tasks.length+' pendente'+(g.tasks.length===1?'':'s')+'</span>'+
+          (late?'<span class="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-700">'+late+' atrasada'+(late===1?'':'s')+'</span>':'')+
+        '</div></div>'+
+      '</div>'+
+      '<ul class="mt-3 space-y-1 text-sm text-slate-600 max-h-32 overflow-y-auto pr-1">'+
+        g.tasks.slice(0,8).map(t=>{
+          const isLate=t.prazo&&t.prazo<today;
+          return '<li class="flex gap-2"><span class="'+(isLate?'text-rose-500':'text-slate-300')+'">•</span><span>'+esc(t.titulo)+(t.prazo?' <span class="text-xs '+(isLate?'text-rose-600 font-medium':'text-slate-400')+'">('+fmtDate(t.prazo)+')</span>':'')+'</span></li>';
+        }).join('')+
+        (g.tasks.length>8?'<li class="text-xs text-slate-400">+ '+(g.tasks.length-8)+' itens na mensagem completa</li>':'')+
+      '</ul>'+
+      '<div class="grid grid-cols-2 gap-2 mt-4">'+
+        '<input value="'+esc(c.email)+'" onchange="cobSave('+i+',\'email\',this.value)" placeholder="e-mail" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">'+
+        '<input value="'+esc(c.phone)+'" onchange="cobSave('+i+',\'phone\',this.value)" placeholder="WhatsApp (DDD + número)" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">'+
+      '</div>'+
+      '<div class="flex gap-2 mt-3">'+
+        '<button onclick="cobWa('+i+')" class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition"><i data-feather="message-circle" class="w-3.5 h-3.5"></i>WhatsApp</button>'+
+        '<button onclick="cobMail('+i+')" class="flex-1 inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition"><i data-feather="mail" class="w-3.5 h-3.5"></i>E-mail</button>'+
+        '<button onclick="cobCopy('+i+')" class="inline-flex items-center justify-center gap-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg transition"><i data-feather="copy" class="w-3.5 h-3.5"></i>Copiar</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function renderAll(){renderPainel();renderAtas();renderPessoas();renderHistorico();renderCobranca();feather.replace();}
+
+/* ---------- TASK CRUD ---------- */
+function refreshAtaSelect(){
+  const sel=document.getElementById('t-ata');
+  const sorted=DB.atas.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  sel.innerHTML='<option value="">— Sem vínculo —</option>'+
+    sorted.map(a=>'<option value="'+a.id+'">'+fmtDate(a.data)+' · '+esc(a.titulo||'Comex')+'</option>').join('');
+}
+function openTaskModal(id){
+  editingTaskId=id||null;
+  refreshAtaSelect();
+  document.getElementById('task-modal-title').textContent=id?'Editar Tarefa':'Nova Tarefa';
+  const t=id?DB.tasks.find(x=>x.id===id):null;
+  document.getElementById('t-titulo').value=t?t.titulo:'';
+  document.getElementById('t-resp').value=t?t.responsavel:'';
+  document.getElementById('t-prazo').value=t?(t.prazo||''):'';
+  document.getElementById('t-pilar').value=t?(t.pilar||'Grupo / Holding'):'Grupo / Holding';
+  document.getElementById('t-ata').value=t?(t.ataId||''):'';
+  document.getElementById('t-notas').value=t?(t.notas||''):'';
+  openModal('task-overlay');
+  document.getElementById('t-titulo').focus();
+}
+async function saveTask(){
+  const titulo=document.getElementById('t-titulo').value.trim();
+  if(!titulo){showErr('A tarefa precisa de um título.');return;}
+  const data={
+    titulo,
+    responsavel:document.getElementById('t-resp').value.trim(),
+    prazo:document.getElementById('t-prazo').value||null,
+    pilar:document.getElementById('t-pilar').value,
+    ataId:document.getElementById('t-ata').value||null,
+    notas:document.getElementById('t-notas').value.trim()
+  };
+  if(editingTaskId){
+    Object.assign(DB.tasks.find(x=>x.id===editingTaskId),data);
+  }else{
+    DB.tasks.push({id:uid(),status:'pendente',criadaEm:todayStr(),...data});
+  }
+  closeModal('task-overlay');
+  await persist();renderAll();
+}
+async function toggleTask(id){
+  const t=DB.tasks.find(x=>x.id===id);
+  if(!t)return;
+  if(t.status==='concluida'){t.status='pendente';t.concluidaEm=null;}
+  else{t.status='concluida';t.concluidaEm=todayStr();}
+  await persist();renderAll();
+}
+async function delTask(id){
+  if(!confirm('Excluir esta tarefa?'))return;
+  DB.tasks=DB.tasks.filter(t=>t.id!==id);
+  await persist();renderAll();
+}
+
+/* ---------- ATA CRUD ---------- */
+function openAtaModal(id){
+  editingAtaId=id||null;
+  document.getElementById('ata-modal-title').textContent=id?'Editar Ata':'Nova Ata';
+  const a=id?DB.atas.find(x=>x.id===id):null;
+  document.getElementById('a-data').value=a?a.data:todayStr();
+  document.getElementById('a-titulo').value=a?(a.titulo||''):'';
+  document.getElementById('a-conteudo').value=a?(a.conteudo||''):'';
+  openModal('ata-overlay');
+}
+async function saveAta(){
+  const data=document.getElementById('a-data').value;
+  const conteudo=document.getElementById('a-conteudo').value.trim();
+  if(!data){showErr('Informe a data da reunião.');return;}
+  if(!conteudo){showErr('A ata está vazia.');return;}
+  const payload={data,titulo:document.getElementById('a-titulo').value.trim(),conteudo};
+  if(editingAtaId){
+    Object.assign(DB.atas.find(x=>x.id===editingAtaId),payload);
+  }else{
+    DB.atas.push({id:uid(),criadaEm:todayStr(),...payload});
+  }
+  closeModal('ata-overlay');
+  await persist();renderAll();
+}
+function openRead(id){
+  const a=DB.atas.find(x=>x.id===id);
+  if(!a)return;
+  event&&event.stopPropagation&&event.stopPropagation();
+  document.getElementById('r-date').textContent=fmtDate(a.data);
+  document.getElementById('r-title').textContent=a.titulo||'Comitê Executivo';
+  document.getElementById('r-content').textContent=a.conteudo||'';
+  const linked=DB.tasks.filter(t=>t.ataId===a.id);
+  document.getElementById('r-tasks').innerHTML=linked.length?
+    '<div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Encaminhamentos desta reunião</div>'+taskTable(linked.map(taskRow).join('')):'';
+  document.getElementById('r-edit').onclick=()=>{closeModal('read-overlay');openAtaModal(a.id);};
+  document.getElementById('r-del').onclick=async()=>{
+    if(!confirm('Excluir esta ata? As tarefas vinculadas serão mantidas, sem o vínculo.'))return;
+    DB.atas=DB.atas.filter(x=>x.id!==a.id);
+    DB.tasks.forEach(t=>{if(t.ataId===a.id)t.ataId=null;});
+    closeModal('read-overlay');
+    await persist();renderAll();
+  };
+  openModal('read-overlay');
+}
+
+/* ---------- MODALS ---------- */
+function openModal(id){document.getElementById(id).classList.remove('hidden');feather.replace();}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+document.querySelectorAll('[id$="-overlay"]').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden');});
+});
+
+/* ---------- SEED: atas de 28/07 e 04/08/2026 ---------- */
+const T=(id,titulo,responsavel,prazo,pilar,ataId,notas)=>({id,titulo,responsavel,prazo,pilar,ataId,notas:notas||'',status:'pendente',criadaEm:ataId==='a2807'?'2026-07-28':'2026-08-04'});
+const SEED={
+atas:[
+{id:'a2807',data:'2026-07-28',criadaEm:'2026-07-28',titulo:'COMEX — Desempenho, Direcionamento, Desenvolvimento e Defesa',conteudo:`COMEX — 28/07/2026, 9h. Responsável: Erich. Participantes: Felipe (Operações), Isabela (Marketing), João (Chef NAMI), Luiz (Chef Amauri), Erich (CEO), Deise (Financeiro), Wesley (Analista), Lucas (Tecnologia), Marília (RH).
+
+D1 — DESEMPENHO
+
+Feijoada Mercearia Amauri: média de 28–30 pedidos aos sábados, abaixo do esperado. Decisão: manter o prato (perda financeira mínima, insumos compartilhados com a quarta) e reformular a experiência — louças mais tradicionais (panelas de barro), buffet na área interna, venda ativa (caldinho na porta, amostras de linguicinha/torresmo/shots de caipirinha), marketing para criar identidade do "sábado de feijoada" e padronização técnica para evitar percepção de requentado.
+
+Reformulação de menu e CMV: prioridade máxima em rentabilidade sem perder percepção de qualidade. Filé mignon (1/3 das compras): auditar limpeza da carne, testar baby beef e categorias menores para pratos batidos (mineirinho). Almoço executivo: principal vilão do CMV — ajustar preço e reduzir gramatura da proteína (−80g), compensando com entrada. Novos insumos: costela janela (−R$19/kg), pizza com fermentação de 24h e insumos em pacotes, troca da marca de batata (economia ~R$50 mil/ano), legumes congelados e novas marcas de linguiça. Vinhos: nova carta com Marcos Paulo pronta na semana seguinte; queima de estoque dos rótulos antigos; garçons mais ativos na oferta de alternativos; nova carta de drinks no marketing.
+
+Prévia resultado julho: Mercearia Campos com caixa +R$62 mil; Mercearia Amauri precisa de R$70 mil até o fim da semana para impostos e salários. Prime Cost Amauri acima de 88% (CMV 30%, CMO 48% — impactado por rescisões). Ênfase na integração de todos os dados no Everest para acompanhamento semanal.
+
+MKT — Eventos: Conferência 2026 orçada em ~R$163 mil; João contrário à realização neste cenário financeiro — alternativas sugeridas: "livezona" de integração e confraternizações simples por unidade. Festivais de fondue em desenvolvimento com custos controlados. Revitalização da feijoada de sábado. Premiações às equipes com produtos bonificados de fornecedores (métricas e parâmetros definidos por Isadora, incluindo indicadores do Google).
+
+Relatório Cláudio — Amauri: diagnóstico de perda de comando na unidade; conduta inadequada de liderança (caso Cecília); falha crítica de segurança no PDV (todos os garçons com senhas de transferência/cancelamento); críticas à postura do relator (aponta problemas mas não atua na operação). Consenso dos sócios: faltas gravíssimas, intervenção imediata.
+
+Tripadvisor/Google — Mamma Gorda: equipe individualista, sem perfil vendedor. Plano: equipe enxuta de 8 garçons de elite, sistema global de comissões (modelo Bambam) a testar em setembro, retorno do Caetano como extra para tracionar avaliações, política "vacilou, tô fora", formação de cominhos, liderança presente no salão.
+
+Baixa temporada em Campos: redução de quadro mantendo alto desempenho, remanejamento entre unidades, comissão global e cominhos no lugar de dobras.
+
+Sistema de eventos: Wesley tem sistema pronto; apresentação posterior aos interessados. Integração Everest é inegociável — mudanças de sistema (Totvs) não podem interrompê-la.
+
+Fichas técnicas: alinhamento de dados com Lucas (divergência CMV cozinha Amauri 46% x 30%) — gestão senta com Lucas para validar fontes; revisão das fichas como ferramenta contra o CMV (executivo, filé/curva A, engenharia de cardápio com Bruno). Água Amauri: Minalba 3,5x mais barata que a Prata — troca aprovada com efetivação imediata.
+
+D3 — DESENVOLVIMENTO
+Projeto de Cultura e Escola de Líderes: continuidade com a Kelly aprovada com ajustes. Marília negocia a nova proposta (pendência de bônus do contrato anterior como base), detalha exigências de materiais próprios e indicadores; Kelly é a responsável técnica. Início imediato do primeiro treinamento de liderança; planejamento com começo, meio e fim.
+
+D4 — DEFESA
+Desligamento do garçom Júnior (Amauri): decisão tomada por indisciplina, conduta e quebra de regras de segurança. Rescisão estimada em R$21 mil; desligamento a partir de 1º/08 (fora da folha de julho); condução pessoal do Luiz, com narrativa de corte de custos para saída tranquila.`},
+{id:'a0408',data:'2026-08-04',criadaEm:'2026-08-04',titulo:'COMEX — Operações, aprovações e novos negócios',conteudo:`COMEX — 04/08/2026. Análise de desempenho das operações, definição de prioridades, aprovação de investimentos e encaminhamentos (operacional, financeiro, comercial e novos negócios).
+
+1. Mamma Gorda: reformulação do menu italiano (preços acessíveis, pratos mais atrativos e "instagramáveis"), melhoria urgente da qualidade da comida (revisão de pratos, insumos, processos e padrões), treinamento da brigada e reformulação da equipe incorporando garçons experientes de outras operações.
+
+2. Orçamento por linha de despesa e quadro ideal de funcionários por operação — Marília e Deise, com apresentação quinzenal ao COMEX.
+
+3. Orçamento, metas e fechamento de julho (comparação 2025 x 2026) no COMEX de 11/08 — podendo ser dividido em duas reuniões.
+
+4. Pintura da Casa Amauri inicia em 10/08; acompanhar cronograma e minimizar impacto na operação e nos eventos.
+
+5. Aprovada a aquisição das novas embalagens da Mercearia Amauri; Luiz negocia maior parcelamento e desconto.
+
+6. Cadeiras: Erich tenta estruturar parceria comercial com a Breton; sem avanço, elaborar plano alternativo.
+
+7. Casa Amauri: lista consolidada de melhorias + apresentação comercial para captação de patrocínios, parceiros e exclusividades (nº de eventos no ano, público recebido, ticket médio, volume de bebidas, perfil dos eventos, exposição de marca, exclusividade por categoria).
+
+8. Fechamento de caixa da Amauri: novo procedimento de registro e controle de penduras (Deise) para fechamento diário correto; reunião e treinamento com Zélia, Branca e caixas das demais operações.
+
+9. Amauri — menu, fichas, estoque e CMV: Moreno conclui cadastramento e fechamento das fichas técnicas no Fichei até 07/08; Rosilene revisa estoques e compras e treina a equipe já na semana de 04/08; na sexta, análise do menu (pratos mantidos, excluídos, reformulados, melhorados) e brainstorming de novos pratos conciliando CMV, qualidade e atratividade.
+
+10. Comissão da Cecília: Erich e Luiz revisam contratos e analisam linha a linha os eventos qualificados; apuração concluída na semana.
+
+11. Aprovado orçamento de R$30.000 (6 parcelas) para o projeto Everest + Cubo Capital; estruturar cronograma com entregas e responsáveis.
+
+12. Aprovado R$1.900.000 para pagamento do imóvel da Betina (operação Properties/Amauri); Erich conduz a negociação e estrutura o financiamento.
+
+13. Calibração de pontos e sistemas: Luiz, Felipe e Bruno consolidam as principais dores operacionais e sistêmicas (comissão individual SP, comissão da cozinha para lideranças, integração com o Bam Bam, ajustes de sistemas e rotinas); depois, Erich, Marília e Lucas propõem soluções, priorizações e testes.
+
+14. Sorvetes: degustação em 15/08; Isa e Jaci seguem no desenvolvimento da marca; cronograma completo de testes definido até a degustação.
+
+15. Aniversário de 3 anos da Mercearia Amauri: Isa já possui orçamentos; formato, orçamento e data definitiva até o próximo COMEX.
+
+16. Campanha Tripadvisor das operações de Campos iniciada em 04/08 — Isabela e Isadora; acompanhar evolução de avaliações, notas e posicionamento.
+
+17. Comunicação da feijoada: Isabela trata com urgência ainda na semana (materiais, canais, frequência e chamadas comerciais).
+
+18. Custos do Centro de Distribuição e da Holding + proposta de metodologia de rateio entre empresas — Deise e Erich no COMEX de 11/08.
+
+19. Caixa mínimo por operação para reduzir mútuos recorrentes com a Holding; Deise e Erich definem valores, critérios de cálculo e acompanhamento.
+
+20. Remuneração variável da Rosilene — Erich e Felipe; modelo vinculado a indicadores objetivos (redução de CMV e perdas, controle de estoques, melhoria de compras, cumprimento de processos, acuracidade de inventários), considerando a supervisão de estoques e compras de Campos e SP.
+
+21. Novos negócios (atualização de Erich): Homus House (assinatura de contrato), projeto de sorvetes (degustação), possível parceria/sociedade com catering de bartenders, estruturação do catering do Campos Hall e desenvolvimento de catering e eventos da Casa Amauri. Avaliação individual por receita, margem, investimento, riscos, capacidade de execução e sinergia com o Grupo.`}
+],
+tasks:[
+T('s01','Estudo e simulação de nova pontuação de comissão por setor','Luiz, Lucas e Erich','2026-07-30','RPE Restaurantes','a2807'),
+T('s02','Treinamento de extração de dados no Everest','Lucas','2026-06-25','Grupo / Holding','a2807'),
+T('s03','Apresentar comparativo de custos pré/pós campanha de conscientização','Isabela e Deise',null,'RPE Restaurantes','a2807','Após a temporada'),
+T('s04','Inventário detalhado de materiais e louças (apartamentos e estoques)','Bruno e Rosilene','2026-07-30','RPE Restaurantes','a2807'),
+T('s05','Criar planilha de controle de custos e receitas de eventos (Campos Hall)','Bruno e Deise','2026-07-30','RPE Eventos','a2807'),
+T('s06','Teste piloto do novo sistema de pontuação de comissão na Amauri','Luiz, Lucas e Erich','2026-06-30','RPE Restaurantes','a2807'),
+T('s07','Conclusão das fichas técnicas com o Chef Mourão','Lucas e Mourão','2026-08-31','RPE Restaurantes','a2807','Prazo: agosto'),
+T('s08','Iniciar implementação da CIPA (questionários e treinamentos)','Marília','2026-08-15','Grupo / Holding','a2807'),
+T('s09','Levantar projeto de investimento para a cozinha do Hall','Bruno','2026-07-30','RPE Eventos','a2807'),
+T('s10','Implementação de fichas técnicas (Mercearia/Luizinho)','Lucas','2026-08-01','RPE Restaurantes','a2807'),
+T('s11','Implementação de fichas técnicas (Mamma Gorda)','Lucas','2026-08-01','RPE Restaurantes','a2807'),
+T('s12','Finalização das fichas técnicas (Bam Bam)','Wesley','2026-08-01','RPE Restaurantes','a2807'),
+T('s13','Renovação do acordo com o sindicato (Campos)','Marília, Felipe e Dra. Juliana','2026-07-31','RPE Restaurantes','a2807','Última semana de julho'),
+T('s14','Resolução do erro de integração de dados (Everest)','Lucas','2026-07-23','Grupo / Holding','a2807'),
+T('s15','Reunião de alinhamento com a liderança da Amauri sobre conduta e comando','Felipe','2026-07-28','RPE Restaurantes','a2807','Cecília, Cláudio e Márcio'),
+T('s16','Substituir a marca de água (Prata pela Minalba)','Felipe','2026-08-04','RPE Restaurantes','a2807'),
+T('s17','Definir dinâmica alternativa para a Conferência 2026','Marília','2026-08-18','Grupo / Holding','a2807'),
+T('n01','Reformular o menu da Mamma Gorda (preços acessíveis, pratos atrativos)','Operação Mamma Gorda',null,'RPE Restaurantes','a0408','Prioridade imediata · responsáveis a definir'),
+T('n02','Elaborar plano urgente de melhoria da qualidade da comida da Mamma Gorda','Operação Mamma Gorda',null,'RPE Restaurantes','a0408','Prioridade imediata · responsáveis a definir'),
+T('n03','Organizar treinamento da brigada da Mamma Gorda','Liderança operacional',null,'RPE Restaurantes','a0408','Responsáveis a definir'),
+T('n04','Avaliar reformulação do quadro e transferência de garçons experientes para a Mamma Gorda','Liderança operacional',null,'RPE Restaurantes','a0408'),
+T('n05','Criar orçamento por linha de despesa para cada casa','Marília e Deise',null,'Grupo / Holding','a0408','Apresentação quinzenal ao COMEX'),
+T('n06','Criar planejamento do quadro ideal de funcionários por operação','Marília e Deise',null,'Grupo / Holding','a0408','Apresentação quinzenal ao COMEX'),
+T('n07','Apresentar orçamento, metas e fechamento de julho (2025 x 2026)','Deise (Financeiro)','2026-08-11','Grupo / Holding','a0408','Pode ser dividido em duas reuniões'),
+T('n08','Iniciar a pintura da Casa Amauri','Responsáveis pela obra','2026-08-10','RPE Eventos','a0408','Acompanhar cronograma e impacto em eventos'),
+T('n09','Negociar desconto e maior parcelamento das novas embalagens','Luiz',null,'RPE Restaurantes','a0408','O mais breve possível'),
+T('n10','Negociar possível parceria para troca das cadeiras com a Breton','Erich','2026-08-11','RPE Restaurantes','a0408','Atualização no próximo COMEX'),
+T('n11','Elaborar plano B para troca das cadeiras, caso a parceria não avance','Erich e equipe',null,'RPE Restaurantes','a0408','Após resultado da negociação'),
+T('n12','Consolidar a lista de melhorias da Casa Amauri','Equipe Casa Amauri',null,'RPE Eventos','a0408'),
+T('n13','Preparar apresentação comercial para captação de patrocínios e exclusividades','Comercial / Casa Amauri',null,'RPE Eventos','a0408'),
+T('n14','Levantar números de eventos, público, ticket médio e volume de bebidas da Casa Amauri','Casa Amauri, Financeiro e Comercial',null,'RPE Eventos','a0408','Antes da apresentação comercial'),
+T('n15','Realizar treinamento sobre penduras e fechamento diário de caixa','Deise',null,'RPE Restaurantes','a0408'),
+T('n16','Realizar reunião com Zélia, Branca e caixas das demais operações','Deise',null,'RPE Restaurantes','a0408'),
+T('n17','Finalizar as fichas técnicas da Mercearia Amauri no Fichei','Moreno','2026-08-07','RPE Restaurantes','a0408'),
+T('n18','Revisar estoques e compras da Mercearia Amauri','Rosilene','2026-08-09','RPE Restaurantes','a0408','Semana de 04/08'),
+T('n19','Realizar treinamentos para melhoria de estoque, compras e CMV','Rosilene','2026-08-09','RPE Restaurantes','a0408','Início na semana de 04/08'),
+T('n20','Analisar o menu e definir pratos mantidos, excluídos ou melhorados','Equipe Mercearia Amauri','2026-08-07','RPE Restaurantes','a0408'),
+T('n21','Realizar brainstorming de novos pratos com bom CMV e qualidade','Equipe Mercearia Amauri',null,'RPE Restaurantes','a0408','Após análise das fichas técnicas'),
+T('n22','Revisar contratos e eventos relacionados à comissão da Cecília','Erich e Luiz','2026-08-07','RPE Restaurantes','a0408','Apuração concluída na semana'),
+T('n23','Formalizar o projeto Everest + Cubo Capital (R$ 30.000 em 6x)','Responsáveis pelo projeto',null,'Grupo / Holding','a0408'),
+T('n24','Definir cronograma, entregas e responsáveis do projeto Everest + Cubo Capital','Responsáveis pelo projeto',null,'Grupo / Holding','a0408'),
+T('n25','Negociar e estruturar o financiamento do imóvel da Betina (R$ 1,9 mi)','Erich',null,'RPE Properties','a0408','Operação Properties/Amauri'),
+T('n26','Levantar as dores de sistemas, processos e modelos de comissão das casas','Luiz, Felipe e Bruno','2026-08-11','RPE Restaurantes','a0408'),
+T('n27','Elaborar soluções para as dores levantadas','Erich, Marília e Lucas',null,'RPE Restaurantes','a0408','Após apresentação das dores'),
+T('n28','Realizar degustação do projeto de sorvetes','Equipe do projeto','2026-08-15','Grupo / Holding','a0408'),
+T('n29','Continuar o desenvolvimento da marca do projeto de sorvetes','Isa e Jaci','2026-08-15','Grupo / Holding','a0408'),
+T('n30','Definir o cronograma de testes dos sorvetes','Equipe do projeto','2026-08-15','Grupo / Holding','a0408'),
+T('n31','Apresentar os orçamentos do aniversário de 3 anos da Mercearia Amauri','Isa','2026-08-11','RPE Restaurantes','a0408'),
+T('n32','Definir formato e data do aniversário da Mercearia Amauri','COMEX','2026-08-11','RPE Restaurantes','a0408'),
+T('n33','Iniciar campanha do Tripadvisor das operações de Campos do Jordão','Isabela e Isadora','2026-08-04','RPE Restaurantes','a0408'),
+T('n34','Desenvolver e executar comunicação urgente da feijoada','Isabela','2026-08-09','RPE Restaurantes','a0408','Semana de 04/08'),
+T('n35','Atualizar os custos do Centro de Distribuição e da Holding','Deise e Erich','2026-08-11','Grupo / Holding','a0408'),
+T('n36','Apresentar proposta de método de rateio do CD e da Holding','Deise e Erich','2026-08-11','Grupo / Holding','a0408'),
+T('n37','Definir o caixa mínimo de cada operação','Deise e Erich','2026-08-11','Grupo / Holding','a0408','Próximo COMEX'),
+T('n38','Definir critérios de controle e acompanhamento do caixa mínimo','Deise e Erich','2026-08-11','Grupo / Holding','a0408','Próximo COMEX'),
+T('n39','Criar proposta de remuneração variável para a Rosilene','Erich e Felipe','2026-08-11','RPE Restaurantes','a0408','Vinculada a CMV, perdas, estoques, compras, processos e inventários'),
+T('n40','Avançar com a assinatura do contrato da Homus House','Erich',null,'Grupo / Holding','a0408'),
+T('n41','Avaliar possível parceria ou sociedade com catering de bartenders','Erich',null,'RPE Eventos','a0408'),
+T('n42','Estruturar o projeto de catering do Campos Hall','Erich e responsáveis do projeto',null,'RPE Eventos','a0408'),
+T('n43','Estruturar oportunidades de catering e eventos da Casa Amauri','Erich e responsáveis do projeto',null,'RPE Eventos','a0408')
+]};
+
+/* ---------- INIT ---------- */
+(async function init(){
+  await loadDB();
+  if(!DB.tasks.length&&!DB.atas.length){DB=SEED;await persist();}
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  renderAll();
+})();
+</script>
+</body>
+</html>
