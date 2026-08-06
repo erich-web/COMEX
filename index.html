@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -613,19 +614,20 @@ function buildMsg(nome,ts){
 }
 function cobSave(i,field,val){
   const n=COB[i].nome;
+  DB.contacts=DB.contacts||{};
   DB.contacts[n]=DB.contacts[n]||{email:'',phone:''};
   DB.contacts[n][field]=val.trim();
   persist();
 }
 function cobWa(i){
-  const c=DB.contacts[COB[i].nome]||{};
+  const c=(DB.contacts||{})[COB[i].nome]||{};
   if(!c.phone){showErr('Cadastre o WhatsApp de '+COB[i].nome+' no campo do card.');return;}
   let d=c.phone.replace(/\D/g,'');
   if(d.length<=11)d='55'+d;
   window.open('https://api.whatsapp.com/send?phone='+d+'&text='+encodeURIComponent(buildMsg(COB[i].nome,COB[i].tasks)),'_blank');
 }
 function cobMail(i){
-  const c=DB.contacts[COB[i].nome]||{};
+  const c=(DB.contacts||{})[COB[i].nome]||{};
   if(!c.email){showErr('Cadastre o e-mail de '+COB[i].nome+' no campo do card.');return;}
   window.open('mailto:'+c.email+'?subject='+encodeURIComponent('Lembretes do Comex — suas pendências')+'&body='+encodeURIComponent(buildMsg(COB[i].nome,COB[i].tasks)),'_self');
 }
@@ -651,7 +653,7 @@ function renderCobranca(){
       return lb-la||b.tasks.length-a.tasks.length||a.nome.localeCompare(b.nome);
     });
   el.innerHTML=COB.map((g,i)=>{
-    const c=DB.contacts[g.nome]||{email:'',phone:''};
+    const c=(DB.contacts||{})[g.nome]||{email:'',phone:''};
     const late=g.tasks.filter(t=>t.prazo&&t.prazo<today).length;
     return '<div class="bg-white border border-slate-200 rounded-xl p-5">'+
       '<div class="flex items-start justify-between gap-3">'+
@@ -1024,7 +1026,7 @@ T('n43','Estruturar oportunidades de catering e eventos da Casa Amauri','Erich e
 /* ---------- INIT ---------- */
 (async function init(){
   await loadDB();
-  if(!DB.tasks.length&&!DB.atas.length){DB=SEED;await persist();}
+  if(!DB.tasks.length&&!DB.atas.length){DB=SEED;DB.contacts=DB.contacts||{};await persist();}
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   renderAll();
