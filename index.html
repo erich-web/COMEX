@@ -645,16 +645,12 @@ function renderCobranca(){
       (byResp[n]=byResp[n]||[]).push(t);
     });
   });
-  COB=Object.keys(byResp).map(n=>({nome:n,tasks:byResp[n]}))
+  COB=PEOPLE.map(n=>({nome:n,tasks:byResp[n]||[]}))
     .sort((a,b)=>{
       const la=a.tasks.filter(t=>t.prazo&&t.prazo<today).length;
       const lb=b.tasks.filter(t=>t.prazo&&t.prazo<today).length;
-      return lb-la||b.tasks.length-a.tasks.length;
+      return lb-la||b.tasks.length-a.tasks.length||a.nome.localeCompare(b.nome);
     });
-  if(!COB.length){
-    el.innerHTML='<div class="md:col-span-2 bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-400">Nenhuma pendência aberta — nada a cobrar. 🎉</div>';
-    return;
-  }
   el.innerHTML=COB.map((g,i)=>{
     const c=DB.contacts[g.nome]||{email:'',phone:''};
     const late=g.tasks.filter(t=>t.prazo&&t.prazo<today).length;
@@ -667,21 +663,24 @@ function renderCobranca(){
         '</div></div>'+
       '</div>'+
       '<ul class="mt-3 space-y-1 text-sm text-slate-600 max-h-32 overflow-y-auto pr-1">'+
+        (g.tasks.length?
         g.tasks.slice(0,8).map(t=>{
           const isLate=t.prazo&&t.prazo<today;
           return '<li class="flex gap-2"><span class="'+(isLate?'text-rose-500':'text-slate-300')+'">•</span><span>'+esc(t.titulo)+(t.prazo?' <span class="text-xs '+(isLate?'text-rose-600 font-medium':'text-slate-400')+'">('+fmtDate(t.prazo)+')</span>':'')+'</span></li>';
         }).join('')+
-        (g.tasks.length>8?'<li class="text-xs text-slate-400">+ '+(g.tasks.length-8)+' itens na mensagem completa</li>':'')+
+        (g.tasks.length>8?'<li class="text-xs text-slate-400">+ '+(g.tasks.length-8)+' itens na mensagem completa</li>':'')
+        :'<li class="text-sm text-green-600">Sem pendências abertas 🎉</li>')+
       '</ul>'+
       '<div class="grid grid-cols-2 gap-2 mt-4">'+
         '<input value="'+esc(c.email)+'" onchange="cobSave('+i+',\'email\',this.value)" placeholder="e-mail" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">'+
         '<input value="'+esc(c.phone)+'" onchange="cobSave('+i+',\'phone\',this.value)" placeholder="WhatsApp (DDD + número)" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">'+
       '</div>'+
+      (g.tasks.length?
       '<div class="flex gap-2 mt-3">'+
         '<button onclick="cobWa('+i+')" class="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition"><i data-feather="message-circle" class="w-3.5 h-3.5"></i>WhatsApp</button>'+
         '<button onclick="cobMail('+i+')" class="flex-1 inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition"><i data-feather="mail" class="w-3.5 h-3.5"></i>E-mail</button>'+
         '<button onclick="cobCopy('+i+')" class="inline-flex items-center justify-center gap-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg transition"><i data-feather="copy" class="w-3.5 h-3.5"></i>Copiar</button>'+
-      '</div>'+
+      '</div>':'')+
     '</div>';
   }).join('');
 }
