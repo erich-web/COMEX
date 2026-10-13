@@ -50,7 +50,7 @@ export default async function ProximoComexPage() {
         {s.isAdmin ? (
           <div className="mt-3 flex gap-2">
             <Button asChild variant="green" size="sm">
-              <Link href={`/admin/reunioes/${meeting.id}/apresentar`}>
+              <Link href={`/apresentar/${meeting.id}`}>
                 <Presentation /> Modo reunião
               </Link>
             </Button>

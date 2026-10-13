@@ -15,7 +15,7 @@ function revalidateMeeting(id?: string) {
   revalidatePath("/");
   if (id) {
     revalidatePath(`/admin/reunioes/${id}`);
-    revalidatePath(`/admin/reunioes/${id}/apresentar`);
+    revalidatePath(`/apresentar/${id}`);
     revalidatePath(`/admin/reunioes/${id}/ata`);
     revalidatePath(`/reunioes/${id}`);
   }
@@ -115,6 +115,9 @@ export async function setMeetingStatus(id: string, status: MeetingStatus): Promi
   }
   if (status === "closed") {
     await supabase.from("agenda_items").update({ status: "discussed", discussed_at: new Date().toISOString() }).eq("meeting_id", id).eq("status", "scheduled");
+  }
+  if (status === "cancelled") {
+    await supabase.from("agenda_items").update({ status: "approved", meeting_id: null, block_id: null }).eq("meeting_id", id).eq("status", "scheduled");
   }
   revalidateMeeting(id);
   return { ok: true, message: status === "published" ? "Agenda publicada." : "Status atualizado." };

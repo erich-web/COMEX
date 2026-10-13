@@ -46,8 +46,8 @@ export function ExperimentForm({ id, initial, readOnly, units, profiles, ideas }
     actual_revenue: initial.actual_revenue?.toString() ?? "",
   });
   const dis = readOnly;
-  const T = ({ k, label, rows = 2 }: { k: keyof typeof f; label: string; rows?: number }) => (
-    <div>
+  const area = (k: keyof typeof f, label: string, rows = 2) => (
+    <div key={k}>
       <Label>{label}</Label>
       <Textarea value={String(f[k] ?? "")} onChange={(e) => setF({ ...f, [k]: e.target.value })} rows={rows} disabled={dis} />
     </div>
@@ -115,9 +115,9 @@ export function ExperimentForm({ id, initial, readOnly, units, profiles, ideas }
           <Input inputMode="decimal" value={f.expected_revenue} onChange={(e) => setF({ ...f, expected_revenue: e.target.value })} disabled={dis} />
         </div>
       </div>
-      <T k="hypothesis" label="Hipótese" />
-      <T k="objective" label="Objetivo" />
-      <T k="success_metrics" label="Indicadores de sucesso" />
+      {area("hypothesis", "Hipótese")}
+      {area("objective", "Objetivo")}
+      {area("success_metrics", "Indicadores de sucesso")}
       <div className="border-t border-line pt-4">
         <div className="section-label mb-3">Resultado</div>
         <div className="space-y-4">
@@ -125,8 +125,8 @@ export function ExperimentForm({ id, initial, readOnly, units, profiles, ideas }
             <Label>Receita realizada (R$)</Label>
             <Input inputMode="decimal" value={f.actual_revenue} onChange={(e) => setF({ ...f, actual_revenue: e.target.value })} disabled={dis} />
           </div>
-          <T k="actual_result" label="Resultado realizado" rows={3} />
-          <T k="next_decision" label="Próxima decisão (escalar, ajustar, descontinuar)" />
+          {area("actual_result", "Resultado realizado", 3)}
+          {area("next_decision", "Próxima decisão (escalar, ajustar, descontinuar)")}
         </div>
       </div>
       {!dis ? (

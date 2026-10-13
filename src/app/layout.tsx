@@ -1,11 +1,46 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, DM_Sans, Spectral } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toast";
 
-const anton = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton", display: "swap" });
-const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
-const spectral = Spectral({ weight: ["300", "400", "500", "600"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-spectral", display: "swap" });
+// Fontes do brandbook RPE auto-hospedadas (src/fonts, OFL) — sem dependência do Google Fonts.
+const anton = localFont({
+  src: [
+    { path: "../fonts/anton-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/anton-latin-ext-400-normal.woff2", weight: "400", style: "normal" },
+  ],
+  variable: "--font-anton",
+  display: "swap",
+});
+const dmSans = localFont({
+  src: [
+    { path: "../fonts/dm-sans-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/dm-sans-latin-ext-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/dm-sans-latin-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "../fonts/dm-sans-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/dm-sans-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/dm-sans-latin-ext-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/dm-sans-latin-700-normal.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+const spectral = localFont({
+  src: [
+    { path: "../fonts/spectral-latin-300-normal.woff2", weight: "300", style: "normal" },
+    { path: "../fonts/spectral-latin-300-italic.woff2", weight: "300", style: "italic" },
+    { path: "../fonts/spectral-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/spectral-latin-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "../fonts/spectral-latin-ext-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "../fonts/spectral-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/spectral-latin-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "../fonts/spectral-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/spectral-latin-ext-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/spectral-latin-600-italic.woff2", weight: "600", style: "italic" },
+  ],
+  variable: "--font-spectral",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: { default: "RPE COMEX", template: "%s · RPE COMEX" },

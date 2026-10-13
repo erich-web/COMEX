@@ -9,23 +9,6 @@ export const metadata = { title: "Mais" };
 
 export default async function MaisPage() {
   const s = await requireMember();
-  const List = ({ items }: { items: typeof MORE_LINKS }) => (
-    <div className="divide-y divide-line border border-line bg-surface">
-      {items.map((l) => {
-        const Icon = l.icon;
-        return (
-          <Link key={l.href} href={l.href} className="flex items-center gap-3 px-4 py-3.5 hover:bg-black/[0.03]">
-            <Icon className="size-5 text-ink-2" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">{l.label}</span>
-              <span className="block truncate text-xs text-mute">{l.desc}</span>
-            </span>
-            <ChevronRight className="size-4 text-mute" />
-          </Link>
-        );
-      })}
-    </div>
-  );
   return (
     <div className="fade-in">
       <PageHeader title="Mais" label="Grupo RPE" />
@@ -54,6 +37,26 @@ export default async function MaisPage() {
         </form>
         <p className="text-center text-[10px] uppercase tracking-[0.15em] text-mute">RPE COMEX · Hospitalidade genuína</p>
       </Container>
+    </div>
+  );
+}
+
+function List({ items }: { items: typeof MORE_LINKS }) {
+  return (
+    <div className="divide-y divide-line border border-line bg-surface">
+      {items.map((l) => {
+        const Icon = l.icon;
+        return (
+          <Link key={l.href} href={l.href} className="flex items-center gap-3 px-4 py-3.5 hover:bg-black/[0.03]">
+            <Icon className="size-5 text-ink-2" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{l.label}</span>
+              <span className="block truncate text-xs text-mute">{l.desc}</span>
+            </span>
+            <ChevronRight className="size-4 text-mute" />
+          </Link>
+        );
+      })}
     </div>
   );
 }

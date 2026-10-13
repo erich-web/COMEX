@@ -65,13 +65,14 @@ export function AgendaBatchForm({
   const [offline, setOffline] = useState(false);
   const hydrated = useRef(false);
 
-  // ---- rascunho local (proteção contra perda de dados)
+  // ---- rascunho local (proteção contra perda de dados) — hidrata do localStorage após montar
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY(userId));
       if (raw) {
         const d = JSON.parse(raw) as { items: Draft[]; reflection: string; batchId: string };
         if (d.items?.length) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setItems(d.items.map((i) => ({ ...i, _open: false })));
           setReflection(d.reflection ?? "");
           setBatchId(d.batchId || crypto.randomUUID());
@@ -94,6 +95,7 @@ export function AgendaBatchForm({
 
   useEffect(() => {
     const on = () => setOffline(false), off = () => setOffline(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOffline(typeof navigator !== "undefined" && !navigator.onLine);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
