@@ -70,7 +70,6 @@ export async function setUnitMembers(unitId: string, members: { profile_id: stri
   }
   revalidatePath("/admin/unidades");
   revalidatePath("/admin/usuarios");
-  revalidatePath("/unidades");
   return { ok: true, message: "Responsáveis atualizados." };
 }
 
@@ -101,7 +100,6 @@ export async function upsertUnit(id: string | null, input: z.input<typeof unitSc
   await supabase.from("unit_kpis").delete().eq("unit_id", data.id);
   if (kpi_ids.length) await supabase.from("unit_kpis").insert(kpi_ids.map((k) => ({ unit_id: data.id, kpi_id: k })));
   revalidatePath("/admin/unidades");
-  revalidatePath("/unidades");
   return { ok: true, data: { id: data.id }, message: "Unidade salva." };
 }
 
@@ -187,8 +185,6 @@ export async function upsertAnnualTarget(input: z.input<typeof targetSchema>): P
   if (parsed.data.year === 2030 && parsed.data.revenue_target) {
     await supabase.from("app_settings").upsert({ key: "goal_2030", value: { year: 2030, revenue_target: parsed.data.revenue_target, label: "RPE 2030" } }, { onConflict: "key" });
   }
-  revalidatePath("/admin/metas");
-  revalidatePath("/rpe-2030");
   revalidatePath("/");
   return { ok: true, message: "Meta salva." };
 }
@@ -200,7 +196,6 @@ export async function upsertStrategicGoal(id: string | null, name: string, descr
   const row = { name: name.trim(), description: description?.trim() || null };
   const { error } = id ? await supabase.from("strategic_goals").update(row).eq("id", id) : await supabase.from("strategic_goals").insert(row);
   if (error) return fail(msg(error));
-  revalidatePath("/admin/metas");
   return { ok: true };
 }
 
@@ -243,6 +238,5 @@ export async function convertReflection(id: string, to: "growth_idea"): Promise<
   await supabase.from("weekly_reflections").update({ converted_to: to }).eq("id", id);
   void s;
   revalidatePath("/admin");
-  revalidatePath("/growth");
   return { ok: true, message: "Reflexão convertida em ideia." };
 }

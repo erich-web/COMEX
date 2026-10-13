@@ -29,7 +29,7 @@ export function AgendaTimeline({ schedule, items, showItems, linkBase = "/pautas
                 <ol className="mt-2 space-y-1.5">
                   {bi.map((it) => (
                     <li key={it.id}>
-                      <Link href={`${linkBase}/${it.id}`} className="flex items-start gap-2 border border-line bg-bg px-2.5 py-2 hover:border-black">
+                      <Link href={`${linkBase}/${it.id}`} className="flex items-start gap-2 border border-line bg-bg px-2.5 py-2 hover:border-primary">
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm leading-snug">
                             {it.requiresDecision ? <Gavel className="mr-1 inline size-3.5 text-green-dark" /> : null}
@@ -58,7 +58,7 @@ export function AgendaTimeline({ schedule, items, showItems, linkBase = "/pautas
           </div>
         );
       })}
-      <div className={cn("flex items-center justify-between border-t px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em]", schedule.overLimit > 0 ? "border-alert bg-alert/10 text-alert" : "border-line text-mute")}>
+      <div className={cn("flex items-center justify-between border-t px-3 py-2 text-[12px] font-bold", schedule.overLimit > 0 ? "border-alert bg-alert/10 text-alert" : "border-line text-mute")}>
         <span>Encerramento previsto</span>
         <span className="tabular">
           {schedule.endClock}

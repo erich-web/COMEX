@@ -1,31 +1,33 @@
 @import "tailwindcss";
 
 /* ============================================================
-   RPE Design System — tokens (brandbook AGO/2025)
-   preto → off-white → verde · geometria angular · Anton / Spectral / DM Sans
+   COMEX — tokens do padrão interno "SaaS azul" (RH / Campos Hall)
+   fundo slate-50 · cards brancos com borda slate-200 · azul blue-600
    ============================================================ */
 :root {
-  --black: #0f0f0f;
-  --dark: #1a1a1a;
-  --space-gray: #313131;
-  --off-white: #f5f4f0;
-  --white: #ffffff;
-  --green: #00b73d;
-  --green-dark: #009932;
-  --green-soft: rgba(0, 183, 61, 0.12);
-  --alert: #d6402b;
-  --alert-soft: rgba(214, 64, 43, 0.1);
-  --amber: #c98a00;
-  --amber-soft: rgba(201, 138, 0, 0.12);
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --ink: #0f172a;
+  --ink-2: #334155;
+  --mute: #64748b;
+  --line: #e2e8f0;
+  --line-2: #cbd5e1;
 
-  --bg: var(--off-white);
-  --surface: var(--white);
-  --surface-2: #ecebe6;
-  --ink: var(--black);
-  --ink-2: #4a4a47;
-  --mute: #7c7b76;
-  --line: rgba(15, 15, 15, 0.1);
-  --line-2: rgba(15, 15, 15, 0.25);
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-soft: #dbeafe;
+  --primary-ink: #1e40af;
+
+  --green: #16a34a;
+  --green-dark: #15803d;
+  --green-soft: #dcfce7;
+  --alert: #dc2626;
+  --alert-soft: #fee2e2;
+  --amber: #d97706;
+  --amber-soft: #fef3c7;
+  --violet: #7c3aed;
+  --violet-soft: #ede9fe;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
@@ -38,14 +40,6 @@
 }
 
 @theme inline {
-  --color-black: var(--black);
-  --color-dark: var(--dark);
-  --color-space: var(--space-gray);
-  --color-offwhite: var(--off-white);
-  --color-green: var(--green);
-  --color-green-dark: var(--green-dark);
-  --color-alert: var(--alert);
-  --color-amber: var(--amber);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -54,11 +48,30 @@
   --color-mute: var(--mute);
   --color-line: var(--line);
   --color-line-2: var(--line-2);
-  --font-display: var(--font-anton), "Arial Narrow", Impact, sans-serif;
-  --font-serif: var(--font-spectral), Georgia, serif;
-  --font-sans: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --radius-sm: 2px;
-  --radius-md: 4px;
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-ink: var(--primary-ink);
+  --color-green: var(--green);
+  --color-green-dark: var(--green-dark);
+  --color-green-soft: var(--green-soft);
+  --color-alert: var(--alert);
+  --color-alert-soft: var(--alert-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  /* compat com nomes antigos */
+  --color-black: var(--ink);
+  --color-dark: var(--ink-2);
+  --color-space: var(--line);
+  --color-offwhite: #ffffff;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-display: var(--font-sans);
+  --font-serif: var(--font-sans);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
 }
 
 * {
@@ -85,12 +98,12 @@ textarea {
   color: inherit;
 }
 :focus-visible {
-  outline: 2px solid var(--green);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 ::selection {
-  background: var(--green);
-  color: var(--black);
+  background: var(--primary-soft);
+  color: var(--ink);
 }
 input[type="date"],
 input[type="time"],
@@ -98,52 +111,47 @@ input[type="number"] {
   min-height: 44px;
 }
 
-/* ---------- tipografia utilitária ---------- */
+/* ---------- tipografia utilitária (compat) ---------- */
 .t-display {
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  line-height: 0.92;
-  letter-spacing: 0.01em;
-  font-weight: 400;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   text-wrap: balance;
 }
 .t-serif {
-  font-family: var(--font-serif);
+  font-weight: 500;
 }
 .t-label {
-  font-family: var(--font-sans);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
   color: var(--mute);
 }
 .t-ui {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
 }
 .section-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--green);
-}
-.section-label::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--green);
+  letter-spacing: 0.06em;
+  color: var(--primary);
 }
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* cards antigos (borda completa) ganham cantos arredondados */
+div.border.border-line,
+div.border.border-line-2,
+div.border.border-dashed,
+div.border.border-alert,
+div.border.border-green,
+div.border.border-primary {
+  border-radius: var(--radius-md);
 }
 
 /* ---------- animações ---------- */
@@ -190,7 +198,6 @@ input[type="number"] {
   }
 }
 
-/* ---------- scrollbar discreta ---------- */
 .scroll-x {
   overflow-x: auto;
   scrollbar-width: none;
@@ -199,14 +206,20 @@ input[type="number"] {
   display: none;
 }
 
-/* ---------- impressão / modo reunião ---------- */
 @media print {
   .no-print {
     display: none !important;
   }
-}
-@media print {
-  nav, aside, header a, button { display: none !important; }
-  main { padding: 0 !important; }
-  body { background: #fff; }
+  nav,
+  aside,
+  header a,
+  button {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  body {
+    background: #fff;
+  }
 }

@@ -27,9 +27,9 @@ export function UnitsManager({ units, kpis, profiles }: { units: Unit[]; kpis: K
             <Plus /> Unidade
           </Button>
         </div>
-        <div className="divide-y divide-line border border-line bg-surface">
+        <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
           {units.map((u) => (
-            <button key={u.id} onClick={() => setUnit(u)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-black/[0.03]">
+            <button key={u.id} onClick={() => setUnit(u)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-primary/[0.03]">
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">
                   {u.name} {!u.is_active ? <Badge variant="soft">inativa</Badge> : null}
@@ -49,9 +49,9 @@ export function UnitsManager({ units, kpis, profiles }: { units: Unit[]; kpis: K
             <Plus /> Indicador
           </Button>
         </div>
-        <div className="divide-y divide-line border border-line bg-surface">
+        <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
           {kpis.map((k) => (
-            <button key={k.id} onClick={() => setKpi(k)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-black/[0.03]">
+            <button key={k.id} onClick={() => setKpi(k)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-primary/[0.03]">
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium">{k.name}</span>
                 <span className="block text-[11px] text-mute">
@@ -107,7 +107,7 @@ function UnitSheet({ unit, kpis, profiles, onClose }: { unit: Unit | null; kpis:
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" className="size-4 accent-[#00b73d]" checked={f.is_active} onChange={(e) => setF({ ...f, is_active: e.target.checked })} /> Unidade ativa
+          <input type="checkbox" className="size-4 accent-[#2563eb]" checked={f.is_active} onChange={(e) => setF({ ...f, is_active: e.target.checked })} /> Unidade ativa
         </label>
         <div>
           <Label>Indicadores específicos (além dos padrão)</Label>
@@ -115,7 +115,7 @@ function UnitSheet({ unit, kpis, profiles, onClose }: { unit: Unit | null; kpis:
             {specific.map((k) => {
               const on = f.kpi_ids.includes(k.id);
               return (
-                <button key={k.id} type="button" onClick={() => setF({ ...f, kpi_ids: on ? f.kpi_ids.filter((x) => x !== k.id) : [...f.kpi_ids, k.id] })} className={cn("border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em]", on ? "border-black bg-black text-offwhite" : "border-line")}>
+                <button key={k.id} type="button" onClick={() => setF({ ...f, kpi_ids: on ? f.kpi_ids.filter((x) => x !== k.id) : [...f.kpi_ids, k.id] })} className={cn("border px-2.5 py-1.5 text-[12px] font-bold", on ? "border-primary bg-primary text-white" : "border-line")}>
                   {k.name}
                 </button>
               );
@@ -129,17 +129,17 @@ function UnitSheet({ unit, kpis, profiles, onClose }: { unit: Unit | null; kpis:
               {profiles.map((p) => {
                 const m = members.find((x) => x.profile_id === p.id);
                 return (
-                  <div key={p.id} className={cn("flex items-center gap-2 border px-2.5 py-2", m ? "border-black" : "border-line")}>
+                  <div key={p.id} className={cn("flex items-center gap-2 border px-2.5 py-2", m ? "border-primary" : "border-line")}>
                     <button type="button" className="flex-1 text-left text-sm" onClick={() => setMembers(m ? members.filter((x) => x.profile_id !== p.id) : [...members, { profile_id: p.id, name: p.name, is_lead: true, can_edit: true }])}>
                       {p.name}
                     </button>
                     {m ? (
                       <>
                         <label className="flex items-center gap-1 text-[10px] font-bold uppercase">
-                          <input type="checkbox" className="accent-[#00b73d]" checked={m.is_lead} onChange={(e) => setMembers(members.map((x) => (x.profile_id === p.id ? { ...x, is_lead: e.target.checked } : x)))} /> líder
+                          <input type="checkbox" className="accent-[#2563eb]" checked={m.is_lead} onChange={(e) => setMembers(members.map((x) => (x.profile_id === p.id ? { ...x, is_lead: e.target.checked } : x)))} /> líder
                         </label>
                         <label className="flex items-center gap-1 text-[10px] font-bold uppercase">
-                          <input type="checkbox" className="accent-[#00b73d]" checked={m.can_edit} onChange={(e) => setMembers(members.map((x) => (x.profile_id === p.id ? { ...x, can_edit: e.target.checked } : x)))} /> edita
+                          <input type="checkbox" className="accent-[#2563eb]" checked={m.can_edit} onChange={(e) => setMembers(members.map((x) => (x.profile_id === p.id ? { ...x, can_edit: e.target.checked } : x)))} /> edita
                         </label>
                       </>
                     ) : null}
@@ -195,7 +195,7 @@ function KpiSheet({ kpi, onClose }: { kpi: Kpi | null; onClose: () => void }) {
   });
   const chk = (k: keyof typeof f, label: string) => (
     <label key={k} className="flex items-center gap-2 text-sm">
-      <input type="checkbox" className="size-4 accent-[#00b73d]" checked={!!f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /> {label}
+      <input type="checkbox" className="size-4 accent-[#2563eb]" checked={!!f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} /> {label}
     </label>
   );
   return (

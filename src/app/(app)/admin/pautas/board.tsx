@@ -4,7 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, ArrowDown, ArrowUp, Gavel, MessageSquare, Sparkles, Send, Copy, X } from "lucide-react";
-import { autoAssignApproved, organizeAgendaItem } from "@/actions/agenda";
+import { organizeAgendaItem } from "@/actions/agenda";
+import { suggestAgendaForMeeting } from "@/actions/agent";
 import { setMeetingStatus } from "@/actions/meetings";
 import { computeSchedule, suggestMinutes, type BlockInput } from "@/lib/agenda";
 import { clockMinutesSP } from "@/lib/dates";
@@ -20,6 +21,7 @@ export type BoardItem = {
   id: string;
   title: string;
   description: string;
+  key_question: string | null;
   category: AgendaCategory;
   urgency: Urgency;
   status: AgendaStatus;
@@ -47,9 +49,8 @@ export type BoardItem = {
 
 type Meeting = { id: string; series_date: string; status: string; startClock: string; duration: number };
 const COLUMNS: { key: string; label: string; statuses: AgendaStatus[] }[] = [
-  { key: "inbox", label: "Recebidas", statuses: ["received", "in_review"] },
+  { key: "inbox", label: "Recebidas — arraste para a agenda", statuses: ["received", "in_review", "approved"] },
   { key: "returned", label: "Devolvidas", statuses: ["returned"] },
-  { key: "approved", label: "Aprovadas (sem bloco)", statuses: ["approved"] },
   { key: "postponed", label: "Adiadas", statuses: ["postponed"] },
 ];
 
@@ -116,10 +117,10 @@ export function OrganizeBoard({ meeting, blocks, items: initial, profiles, units
   return (
     <div className="space-y-4">
       {/* Barra de controle do tempo */}
-      <div className={cn("border p-3", schedule.overLimit > 0 || overBlocks.length ? "border-alert bg-alert/5" : "border-line bg-surface")}>
+      <div className={cn("rounded-[14px] border p-3", schedule.overLimit > 0 || overBlocks.length ? "border-alert bg-alert-soft" : "border-line bg-surface")}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm">
-            <span className="t-display text-2xl tabular">{meeting.startClock}–{schedule.endClock}</span>
+            <span className="text-xl font-bold tabular">{meeting.startClock}–{schedule.endClock}</span>
             <span className="ml-2 text-xs text-mute">{schedule.totalMinutes} min em blocos · {scheduled.length} pautas agendadas</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -129,15 +130,15 @@ export function OrganizeBoard({ meeting, blocks, items: initial, profiles, units
               loading={pending}
               onClick={() =>
                 start(async () => {
-                  const r = await autoAssignApproved(meeting.id);
+                  const r = await suggestAgendaForMeeting(meeting.id);
                   if (r.ok) {
-                    toast(`${r.data?.assigned ?? 0} pauta(s) distribuída(s) por bloco`);
+                    toast(r.message ?? "Agenda sugerida", { description: r.data?.note });
                     router.refresh();
                   } else toast.error(r.error);
                 })
               }
             >
-              <Sparkles /> Distribuir aprovadas
+              <Sparkles /> Sugestão do agente
             </Button>
             {meeting.status === "preparing" ? (
               <Button variant="green" size="sm" onClick={() => setConfirmPublish(true)}>
@@ -154,7 +155,7 @@ export function OrganizeBoard({ meeting, blocks, items: initial, profiles, units
           <div className="mt-2 flex items-start gap-2 text-xs font-semibold text-alert">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <div>
-              {schedule.overLimit > 0 ? <div>Agenda ultrapassa o limite da reunião em {schedule.overLimit} min — ajuste blocos em “Blocos e configurações”.</div> : null}
+              {schedule.overLimit > 0 ? <div>Agenda ultrapassa o limite da reunião em {schedule.overLimit} min — ajuste os blocos em “Blocos, participantes e ata”.</div> : null}
               {overBlocks.map((b) => (
                 <div key={b.id}>
                   {b.title}: {b.allottedTotal} min atribuídos para {b.duration_minutes} min disponíveis (+{b.overBy}).
@@ -205,7 +206,7 @@ export function OrganizeBoard({ meeting, blocks, items: initial, profiles, units
                   <span className="t-display text-base text-mute">{list.length}</span>
                 </div>
                 {list.length === 0 ? (
-                  <div className="border border-dashed border-line px-3 py-3 text-xs text-mute">Vazio</div>
+                  <div className="rounded-[12px] border border-dashed border-line-2 px-3 py-3 text-xs text-mute">Vazio</div>
                 ) : (
                   <div className="space-y-1.5">
                     {list.map((it) => (
@@ -226,7 +227,7 @@ export function OrganizeBoard({ meeting, blocks, items: initial, profiles, units
             return (
               <div
                 key={b.id}
-                className={cn("border bg-surface transition-colors", b.overBy > 0 ? "border-alert" : dragId ? "border-dashed border-green" : "border-line")}
+                className={cn("overflow-hidden rounded-[14px] border bg-surface transition-colors", b.overBy > 0 ? "border-alert" : dragId ? "border-dashed border-primary" : "border-line")}
                 onDragOver={(e) => {
                   e.preventDefault();
                 }}
@@ -237,19 +238,19 @@ export function OrganizeBoard({ meeting, blocks, items: initial, profiles, units
                   setDragId(null);
                 }}
               >
-                <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+                <div className="flex items-center justify-between gap-2 border-b border-line bg-bg px-3 py-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">
                       <span className="tabular text-mute">{b.startClock}</span> {b.title}
                     </div>
-                    <div className="text-[10px] uppercase tracking-[0.1em] text-mute">{kindLabel(b.kind)}</div>
+                    <div className="text-[10px]  text-mute">{kindLabel(b.kind)}</div>
                   </div>
                   <div className={cn("shrink-0 text-xs font-bold tabular", b.overBy > 0 ? "text-alert" : "text-ink-2")}>
                     {b.allottedTotal}/{b.duration_minutes} min
                   </div>
                 </div>
                 <div className="space-y-1.5 p-2">
-                  {list.length === 0 ? <div className="px-1 py-2 text-xs text-mute">Arraste pautas aprovadas para cá ou use “Mover para bloco”.</div> : null}
+                  {list.length === 0 ? <div className="px-1 py-2 text-xs text-mute">Arraste pautas para cá ou abra a pauta e escolha o bloco.</div> : null}
                   {list.map((it, idx) => (
                     <ItemCard key={it.id} item={it} compact onOpen={() => setOpen(it)} draggable onDragStart={() => setDragId(it.id)} onDragEnd={() => setDragId(null)}>
                       <div className="flex items-center gap-0.5">
@@ -295,13 +296,14 @@ export function OrganizeBoard({ meeting, blocks, items: initial, profiles, units
 
 function ItemCard({ item, compact, onOpen, children, ...drag }: { item: BoardItem; compact?: boolean; onOpen: () => void; children?: React.ReactNode; draggable?: boolean; onDragStart?: () => void; onDragEnd?: () => void }) {
   return (
-    <div {...drag} onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()} className={cn("cursor-pointer border border-line bg-bg px-2.5 py-2 transition-colors hover:border-black", item.status === "returned" && "border-l-2 border-l-alert", item.priority >= 2 && "border-l-2 border-l-green")}>
+    <div {...drag} onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()} className={cn("cursor-pointer rounded-[10px] border border-line bg-surface px-2.5 py-2 transition-colors hover:border-primary", item.status === "returned" && "border-l-[3px] border-l-alert", item.priority >= 2 && "border-l-[3px] border-l-primary")}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium leading-snug">
             {item.requires_decision ? <Gavel className="mr-1 inline size-3.5 text-green-dark" /> : null}
             {item.title}
           </div>
+          {!compact && item.key_question ? <div className="mt-0.5 line-clamp-2 text-[12px] text-ink-2">{item.key_question}</div> : null}
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-mute">
             <span>{item.author}</span>
             {item.unit ? <span>· {item.unit}</span> : null}
@@ -338,13 +340,14 @@ function ItemSheet({ item, blocks, profiles, onClose, onApply, onBlock }: { item
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title={item.title} description={`${item.author}${item.unit ? ` · ${item.unit}` : ""} · ${AGENDA_STATUS_LABELS[item.status]}`}>
       <div className="space-y-4">
-        <p className="whitespace-pre-wrap text-sm">{item.description}</p>
+        {item.key_question ? <Row label="Pergunta-chave" v={item.key_question} /> : null}
+        {item.description ? <Row label="Contexto" v={item.description} /> : null}
         {item.expected_outcome ? <Row label="Resultado esperado" v={item.expected_outcome} /> : null}
         {item.problem ? <Row label="Problema" v={item.problem} /> : null}
         {item.proposed_solution ? <Row label="Solução proposta" v={item.proposed_solution} /> : null}
         {item.duplicates.length ? (
-          <div className="border border-amber/40 bg-amber/10 p-2 text-xs">
-            <div className="font-bold uppercase tracking-[0.1em] text-amber">Semelhante a</div>
+          <div className="rounded-[10px] border border-amber/40 bg-amber-soft p-2 text-xs">
+            <div className="font-bold text-amber">Semelhante a</div>
             <ul className="mt-1 list-disc pl-4">
               {item.duplicates.map((d, i) => (
                 <li key={i}>{d}</li>
@@ -352,7 +355,7 @@ function ItemSheet({ item, blocks, profiles, onClose, onApply, onBlock }: { item
             </ul>
           </div>
         ) : null}
-        <Link href={`/pautas/${item.id}`} className="inline-block text-[11px] font-bold uppercase tracking-[0.1em] underline">
+        <Link href={`/pautas/${item.id}`} className="inline-block text-[12px] font-semibold text-primary underline">
           Abrir pauta completa
         </Link>
 
@@ -406,7 +409,7 @@ function ItemSheet({ item, blocks, profiles, onClose, onApply, onBlock }: { item
               </Select>
             </div>
             <label className="col-span-2 flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-[#00b73d]" checked={item.requires_decision} onChange={(e) => onApply({ requires_decision: e.target.checked }, { requires_decision: e.target.checked })} /> Exige decisão
+              <input type="checkbox" className="size-4 accent-[#2563eb]" checked={item.requires_decision} onChange={(e) => onApply({ requires_decision: e.target.checked }, { requires_decision: e.target.checked })} /> Exige decisão
             </label>
           </div>
           <div className="mt-3">
@@ -456,7 +459,7 @@ function ItemSheet({ item, blocks, profiles, onClose, onApply, onBlock }: { item
 function Row({ label, v }: { label: string; v: string }) {
   return (
     <div>
-      <div className="t-label">{label}</div>
+      <div className="text-[12px] font-semibold text-mute">{label}</div>
       <div className="whitespace-pre-wrap text-sm">{v}</div>
     </div>
   );

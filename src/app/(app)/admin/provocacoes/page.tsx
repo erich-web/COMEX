@@ -14,11 +14,11 @@ export default async function ProvocacoesPage() {
   return (
     <div className="fade-in">
       <PageHeader title="Provocações semanais" label="Biblioteca de inspiração" back="/admin" />
-      <Container className="space-y-5">
+      <Container className="space-y-5 py-4">
         <Card dark>
           <div className="section-label">Provocação desta semana</div>
-          <p className="mt-2 font-serif text-xl italic">“{current?.text ?? "Nenhuma provocação ativa"}”</p>
-          <p className="mt-2 text-xs text-offwhite/60">Rodízio automático por semana; para fixar uma mensagem em determinada reunião, edite a reunião em Calendário.</p>
+          <p className="mt-2  text-xl italic">“{current?.text ?? "Nenhuma provocação ativa"}”</p>
+          <p className="mt-2 text-xs text-white/60">Rodízio automático por semana; para fixar uma mensagem em determinada reunião, edite a reunião em Calendário.</p>
         </Card>
         <PromptsManager prompts={(prompts ?? []).map((p) => ({ id: p.id, text: p.text, author: p.author, is_active: p.is_active }))} />
       </Container>

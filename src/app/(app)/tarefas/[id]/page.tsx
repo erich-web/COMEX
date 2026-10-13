@@ -48,7 +48,7 @@ export default async function TarefaPage({ params }: PageProps<"/tarefas/[id]">)
         back="/tarefas"
         action={<Badge variant={task.status === "done" ? "green" : task.status === "blocked" ? "alert" : late ? "alertSoft" : "soft"}>{TASK_STATUS_LABELS[task.status]}</Badge>}
       />
-      <Container className="space-y-4">
+      <Container className="space-y-4 py-4">
         {canEdit && open ? <TaskActions taskId={task.id} status={task.status} /> : null}
 
         <Card className="space-y-3">
@@ -61,7 +61,7 @@ export default async function TarefaPage({ params }: PageProps<"/tarefas/[id]">)
           {task.description ? <p className="whitespace-pre-wrap text-sm">{task.description}</p> : null}
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-mute">
             {task.meeting ? (
-              <Link href={`/reunioes/${task.meeting.id}`} className="underline">
+              <Link href={`/atas/${task.meeting.id}`} className="underline">
                 COMEX de {fmtDate(task.meeting.series_date, { day: "2-digit", month: "short", year: "numeric" })}
               </Link>
             ) : null}
@@ -101,7 +101,7 @@ export default async function TarefaPage({ params }: PageProps<"/tarefas/[id]">)
 
         {activity?.length ? (
           <details className="border border-line bg-surface">
-            <summary className="cursor-pointer px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-2">Histórico de alterações</summary>
+            <summary className="cursor-pointer px-4 py-3 text-[11px] font-bold  text-ink-2">Histórico de alterações</summary>
             <ul className="divide-y divide-line px-4 pb-3 text-xs text-mute">
               {activity.map((a) => (
                 <li key={a.id} className="py-2">

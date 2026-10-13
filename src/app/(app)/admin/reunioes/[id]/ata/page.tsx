@@ -27,7 +27,7 @@ export default async function AtaPage({ params }: PageProps<"/admin/reunioes/[id
   return (
     <div className="fade-in">
       <PageHeader title="Ata e decisões" label={`COMEX ${fmtDate(m.series_date, { day: "2-digit", month: "long", year: "numeric" })}`} back={`/admin/reunioes/${id}`} />
-      <Container className="space-y-5">
+      <Container className="space-y-5 py-4">
         <DecisionsPanel
           meetingId={id}
           decisions={(decisions ?? []).map((d) => ({ id: d.id, title: d.title, description: d.description, owner: d.owner?.short_name ?? null, due_date: d.due_date, task: d.task?.[0] ?? null }))}

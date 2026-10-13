@@ -5,45 +5,39 @@ import { useRouter } from "next/navigation";
 import { Send } from "lucide-react";
 import { updateMyAgendaItem, withdrawMyAgendaItem, addAgendaComment } from "@/actions/agenda";
 import { Button } from "@/components/ui/button";
-import { Card, FieldError, Input, Label, Select, Textarea } from "@/components/ui/primitives";
+import { Card, Chip, FieldError, Input, Label, Textarea } from "@/components/ui/primitives";
 import { ConfirmDialog } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
-import { CATEGORY_LABELS, URGENCY_LABELS } from "@/lib/constants";
+import { CATEGORY_LABELS, DURATION_OPTIONS, THEME_OPTIONS } from "@/lib/constants";
 import { fmtDateTime } from "@/lib/format";
-import type { Tables } from "@/lib/types";
+import type { Tables, AgendaCategory } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type Item = Tables<"agenda_items">;
 
-export function AgendaItemEditor({ item, units, goals }: { item: Item; units: { id: string; name: string }[]; goals: { id: string; name: string }[] }) {
+export function AgendaItemEditor({ item, units }: { item: Item; units: { id: string; name: string; slug: string }[] }) {
   const router = useRouter();
   const [form, setForm] = useState({
     title: item.title,
+    key_question: item.key_question ?? "",
     description: item.description,
     unit_id: item.unit_id ?? "",
-    expected_outcome: item.expected_outcome ?? "",
-    category: item.category,
-    problem: item.problem ?? "",
-    proposed_solution: item.proposed_solution ?? "",
-    expected_impact: item.expected_impact ?? "",
-    urgency: item.urgency,
-    suggested_minutes: item.suggested_minutes ?? ("" as number | ""),
-    people_involved: item.people_involved ?? "",
-    strategic_goal_id: item.strategic_goal_id ?? "",
-    requires_decision: item.requires_decision,
+    category: item.category as AgendaCategory,
+    suggested_minutes: item.suggested_minutes ?? 10,
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [pending, start] = useTransition();
   const [confirm, setConfirm] = useState(false);
   const set = (k: keyof typeof form, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
+  const themes = THEME_OPTIONS.includes(form.category) ? THEME_OPTIONS : [...THEME_OPTIONS, form.category];
 
   function save() {
     start(async () => {
       const r = await updateMyAgendaItem(item.id, {
         ...form,
         unit_id: form.unit_id || null,
-        strategic_goal_id: form.strategic_goal_id || null,
-        suggested_minutes: form.suggested_minutes === "" ? null : Number(form.suggested_minutes),
         links: (item.links as { label?: string; url: string }[]) ?? [],
+        requires_decision: form.category === "strategic_decision",
       });
       if (!r.ok) {
         setErrors(r.fieldErrors ?? {});
@@ -57,90 +51,51 @@ export function AgendaItemEditor({ item, units, goals }: { item: Item; units: { 
 
   return (
     <Card className="space-y-4">
-      <div className="t-label">Você ainda pode editar esta pauta</div>
+      <div className="text-[13px] font-semibold text-mute">Você ainda pode editar esta pauta</div>
       <div>
         <Label>Título</Label>
         <Input value={form.title} onChange={(e) => set("title", e.target.value)} aria-invalid={!!errors.title} />
         <FieldError>{errors.title?.[0]}</FieldError>
       </div>
       <div>
-        <Label>Contexto</Label>
-        <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={4} aria-invalid={!!errors.description} />
-        <FieldError>{errors.description?.[0]}</FieldError>
+        <Label>Pergunta-chave</Label>
+        <Textarea value={form.key_question} onChange={(e) => set("key_question", e.target.value)} rows={2} className="min-h-[64px]" aria-invalid={!!errors.key_question} />
+        <FieldError>{errors.key_question?.[0]}</FieldError>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label>Unidade</Label>
-          <Select value={form.unit_id} onChange={(e) => set("unit_id", e.target.value)}>
-            <option value="">Grupo / transversal</option>
-            {units.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label>Tipo</Label>
-          <Select value={form.category} onChange={(e) => set("category", e.target.value)}>
-            {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label>Urgência</Label>
-          <Select value={form.urgency} onChange={(e) => set("urgency", e.target.value)}>
-            {Object.entries(URGENCY_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label>Tempo sugerido (min)</Label>
-          <Input type="number" inputMode="numeric" value={form.suggested_minutes} onChange={(e) => set("suggested_minutes", e.target.value ? Number(e.target.value) : "")} />
+      <div>
+        <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Duração</div>
+        <div className="flex gap-2">
+          {DURATION_OPTIONS.map((m) => (
+            <button key={m} type="button" aria-pressed={form.suggested_minutes === m} onClick={() => set("suggested_minutes", m)} className={cn("h-10 flex-1 rounded-[10px] border text-[14px] font-semibold", form.suggested_minutes === m ? "border-primary bg-primary text-white" : "border-line-2 bg-surface text-ink-2")}>
+              {m === 30 ? "30+" : m}
+            </button>
+          ))}
         </div>
       </div>
       <div>
-        <Label>Resultado esperado</Label>
-        <Input value={form.expected_outcome} onChange={(e) => set("expected_outcome", e.target.value)} />
-      </div>
-      <div>
-        <Label>Problema identificado</Label>
-        <Textarea value={form.problem} onChange={(e) => set("problem", e.target.value)} rows={2} />
-      </div>
-      <div>
-        <Label>Solução proposta</Label>
-        <Textarea value={form.proposed_solution} onChange={(e) => set("proposed_solution", e.target.value)} rows={2} />
-      </div>
-      <div>
-        <Label>Impacto esperado</Label>
-        <Input value={form.expected_impact} onChange={(e) => set("expected_impact", e.target.value)} />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label>Objetivo estratégico</Label>
-          <Select value={form.strategic_goal_id} onChange={(e) => set("strategic_goal_id", e.target.value)}>
-            <option value="">—</option>
-            {goals.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label>Pessoas envolvidas</Label>
-          <Input value={form.people_involved} onChange={(e) => set("people_involved", e.target.value)} />
+        <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Temática</div>
+        <div className="flex flex-wrap gap-2">
+          {themes.map((c) => (
+            <Chip key={c} active={form.category === c} onClick={() => set("category", c)}>
+              {CATEGORY_LABELS[c]}
+            </Chip>
+          ))}
         </div>
       </div>
-      <label className="flex items-center gap-3 text-sm">
-        <input type="checkbox" className="size-4 accent-[#00b73d]" checked={form.requires_decision} onChange={(e) => set("requires_decision", e.target.checked)} /> Exige decisão do COMEX
-      </label>
+      <div>
+        <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Empresa</div>
+        <div className="flex flex-wrap gap-2">
+          {units.map((u) => (
+            <Chip key={u.id} active={form.unit_id === u.id} onClick={() => set("unit_id", u.id)}>
+              {u.slug === "grupo-holding" ? "Grupo" : u.name}
+            </Chip>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Label>Contexto (opcional)</Label>
+        <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
+      </div>
       <div className="flex items-center justify-between gap-2 pt-2">
         <Button variant="ghost" size="sm" className="text-alert" onClick={() => setConfirm(true)}>
           Retirar pauta
@@ -174,11 +129,11 @@ export function AgendaComments({ itemId, comments }: { itemId: string; comments:
   const [pending, start] = useTransition();
   return (
     <Card>
-      <div className="t-label mb-2">Comentários e esclarecimentos</div>
+      <div className="mb-2 text-[13px] font-semibold text-mute">Comentários e esclarecimentos</div>
       {comments.length ? (
         <ul className="mb-3 space-y-3">
           {comments.map((c) => (
-            <li key={c.id} className="border-l-2 border-green pl-3">
+            <li key={c.id} className="border-l-2 border-primary pl-3">
               <p className="text-sm">{c.body}</p>
               <p className="mt-0.5 text-[11px] text-mute">
                 {c.author} · {fmtDateTime(c.created_at)}

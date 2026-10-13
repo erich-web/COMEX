@@ -40,7 +40,7 @@ export default async function AdminReuniaoPage({ params }: PageProps<"/admin/reu
           </Button>
         </div>
       </PageHeader>
-      <Container className="space-y-5">
+      <Container className="space-y-5 py-4">
         <MeetingSettings
           meeting={{ id: m.id, title: m.title, series_date: m.series_date, time: fmtTime(m.scheduled_at), duration_minutes: m.duration_minutes, status: m.status, prompt_id: m.prompt_id, review_unit_ids: m.review_unit_ids, notes: m.notes ?? "" }}
           prompts={prompts ?? []}

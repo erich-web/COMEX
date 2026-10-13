@@ -11,13 +11,13 @@ import type { Database } from "@/lib/supabase/database.types";
 function revalidateMeeting(id?: string) {
   revalidatePath("/admin/pautas");
   revalidatePath("/proximo-comex");
-  revalidatePath("/reunioes");
+  revalidatePath("/atas");
   revalidatePath("/");
   if (id) {
     revalidatePath(`/admin/reunioes/${id}`);
     revalidatePath(`/apresentar/${id}`);
     revalidatePath(`/admin/reunioes/${id}/ata`);
-    revalidatePath(`/reunioes/${id}`);
+    revalidatePath(`/atas/${id}`);
   }
 }
 
@@ -198,7 +198,7 @@ export async function saveMinutes(input: z.input<typeof minutesSchema>): Promise
   if (error) return fail(msg(error));
   if (d.approve) {
     const { data: members } = await supabase.from("profiles").select("id").eq("is_active", true).in("role", ["admin", "executive", "unit_lead"]).neq("id", s.profile.id);
-    if (members?.length) await supabase.from("notifications").insert(members.map((p) => ({ profile_id: p.id, kind: "minutes_approved", title: "Ata do COMEX disponível", body: d.title ?? "Ata aprovada", link: `/reunioes/${d.meeting_id}` })));
+    if (members?.length) await supabase.from("notifications").insert(members.map((p) => ({ profile_id: p.id, kind: "minutes_approved", title: "Ata do COMEX disponível", body: d.title ?? "Ata aprovada", link: `/atas/${d.meeting_id}` })));
   }
   revalidateMeeting(d.meeting_id);
   return { ok: true, message: d.approve ? "Ata aprovada e publicada." : "Rascunho salvo." };

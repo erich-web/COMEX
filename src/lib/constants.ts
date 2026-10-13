@@ -5,14 +5,28 @@ export const GOAL_LABEL = "RPE 2030 — R$ 200 MILHÕES";
 export const TZ = "America/Sao_Paulo";
 
 export const CATEGORY_LABELS: Record<AgendaCategory, string> = {
-  strategic_decision: "Deliberação estratégica",
+  marketing_sales: "Crescimento e vendas",
+  strategic_decision: "Decisão estratégica",
+  brainstorm: "Problema e solução",
+  innovation: "Ideia / inovação",
   accountability: "Prestação de contas",
+  knowledge: "Conhecimento",
   business_review: "Business Review",
-  brainstorm: "Brainstorm / desafio",
-  knowledge: "Conhecimento executivo",
-  marketing_sales: "Marketing e vendas",
-  innovation: "Inovação e novos negócios",
   other: "Outros",
+};
+
+/** Temáticas oferecidas no envio de pautas (as demais ficam para uso administrativo). */
+export const THEME_OPTIONS: AgendaCategory[] = ["marketing_sales", "strategic_decision", "brainstorm", "innovation", "accountability", "knowledge"];
+
+/** Durações oferecidas no envio de pautas. */
+export const DURATION_OPTIONS = [5, 10, 15, 20, 30] as const;
+
+export const INSIGHT_KIND_LABELS: Record<string, string> = {
+  recurring_problem: "Problema recorrente",
+  growth_idea: "Ideia de crescimento",
+  critical_question: "Pergunta crítica",
+  suggestion: "Sugestão",
+  pending_decision: "Decisão em aberto",
 };
 
 /** Bloco recomendado por categoria */

@@ -21,7 +21,7 @@ export function TaskListItem({ task, today, showOwner }: { task: TaskRow; today:
   const late = open && task.due_date && task.due_date < today;
   const days = task.due_date ? daysBetween(task.due_date, today) : 0;
   return (
-    <Link href={`/tarefas/${task.id}`} className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03]">
+    <Link href={`/tarefas/${task.id}`} className="flex items-center gap-3 px-3 py-3 hover:bg-primary/[0.03]">
       <Icon className={cn("size-5 shrink-0", task.status === "done" ? "text-green" : task.status === "blocked" ? "text-alert" : late ? "text-alert" : "text-mute")} />
       <div className="min-w-0 flex-1">
         <div className={cn("truncate text-sm font-medium", task.status === "done" && "text-mute line-through")}>{task.title}</div>

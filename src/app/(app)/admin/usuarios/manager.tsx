@@ -32,14 +32,14 @@ export function UsersManager({ profiles, invites, units }: { profiles: P[]; invi
             <Plus /> Convidar
           </Button>
         </div>
-        <div className="divide-y divide-line border border-line bg-surface">
+        <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
           {profiles.map((p) => (
-            <button key={p.id} onClick={() => setEditing(p)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-black/[0.03]">
-              <span className={cn("flex size-9 shrink-0 items-center justify-center text-xs font-bold", p.is_active ? "bg-black text-offwhite" : "bg-black/10 text-mute")}>{(p.short_name ?? p.full_name ?? "?").slice(0, 1).toUpperCase()}</span>
+            <button key={p.id} onClick={() => setEditing(p)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-primary/[0.03]">
+              <span className={cn("flex size-9 shrink-0 items-center justify-center text-xs font-bold", p.is_active ? "bg-primary text-white" : "bg-ink/10 text-mute")}>{(p.short_name ?? p.full_name ?? "?").slice(0, 1).toUpperCase()}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">
                   {p.full_name || p.email}
-                  {!p.is_active ? <span className="ml-2 text-[10px] font-bold uppercase tracking-[0.1em] text-alert">aguardando liberação</span> : null}
+                  {!p.is_active ? <span className="ml-2 text-[10px] font-bold  text-alert">aguardando liberação</span> : null}
                 </span>
                 <span className="block truncate text-xs text-mute">
                   {p.email} · {ROLE[p.role]}
@@ -56,7 +56,7 @@ export function UsersManager({ profiles, invites, units }: { profiles: P[]; invi
       <section>
         <div className="section-label mb-2">Convites pendentes ({pendingInvites.length})</div>
         <Hint className="mb-2 mt-0">Quem estiver nesta lista entra automaticamente com o papel e as unidades definidas ao usar o link mágico. Confira os e-mails antes de compartilhar o link do COMEX.</Hint>
-        <div className="divide-y divide-line border border-line bg-surface">
+        <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
           {pendingInvites.map((i) => (
             <div key={i.email} className="flex items-center gap-3 px-3 py-2.5">
               <button className="min-w-0 flex-1 text-left" onClick={() => setInviteOpen(i)}>
@@ -121,7 +121,7 @@ function InviteSheet({ invite, units, onClose }: { invite: I; units: U[]; onClos
             {units.map((u) => {
               const on = f.unit_slugs.includes(u.slug);
               return (
-                <button key={u.id} type="button" onClick={() => setF({ ...f, unit_slugs: on ? f.unit_slugs.filter((s) => s !== u.slug) : [...f.unit_slugs, u.slug] })} className={cn("border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em]", on ? "border-black bg-black text-offwhite" : "border-line")}>
+                <button key={u.id} type="button" onClick={() => setF({ ...f, unit_slugs: on ? f.unit_slugs.filter((s) => s !== u.slug) : [...f.unit_slugs, u.slug] })} className={cn("border px-2.5 py-1.5 text-[12px] font-bold", on ? "border-primary bg-primary text-white" : "border-line")}>
                   {u.name}
                 </button>
               );
@@ -184,7 +184,7 @@ function ProfileSheet({ profile, units, onClose }: { profile: P; units: U[]; onC
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" className="size-4 accent-[#00b73d]" checked={f.is_active} onChange={(e) => setF({ ...f, is_active: e.target.checked })} /> Acesso ativo
+          <input type="checkbox" className="size-4 accent-[#2563eb]" checked={f.is_active} onChange={(e) => setF({ ...f, is_active: e.target.checked })} /> Acesso ativo
         </label>
         <div>
           <Label>Unidades e permissões</Label>
@@ -192,17 +192,17 @@ function ProfileSheet({ profile, units, onClose }: { profile: P; units: U[]; onC
             {units.map((u) => {
               const m = members.find((x) => x.unit_id === u.id);
               return (
-                <div key={u.id} className={cn("flex items-center gap-2 border px-2.5 py-2", m ? "border-black" : "border-line")}>
+                <div key={u.id} className={cn("flex items-center gap-2 border px-2.5 py-2", m ? "border-primary" : "border-line")}>
                   <button type="button" onClick={() => toggle(u.id)} className="flex-1 text-left text-sm font-medium">
                     {u.name}
                   </button>
                   {m ? (
                     <>
-                      <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em]">
-                        <input type="checkbox" className="accent-[#00b73d]" checked={m.is_lead} onChange={(e) => setMembers(members.map((x) => (x.unit_id === u.id ? { ...x, is_lead: e.target.checked } : x)))} /> líder
+                      <label className="flex items-center gap-1 text-[12px] font-bold">
+                        <input type="checkbox" className="accent-[#2563eb]" checked={m.is_lead} onChange={(e) => setMembers(members.map((x) => (x.unit_id === u.id ? { ...x, is_lead: e.target.checked } : x)))} /> líder
                       </label>
-                      <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em]">
-                        <input type="checkbox" className="accent-[#00b73d]" checked={m.can_edit} onChange={(e) => setMembers(members.map((x) => (x.unit_id === u.id ? { ...x, can_edit: e.target.checked } : x)))} /> edita
+                      <label className="flex items-center gap-1 text-[12px] font-bold">
+                        <input type="checkbox" className="accent-[#2563eb]" checked={m.can_edit} onChange={(e) => setMembers(members.map((x) => (x.unit_id === u.id ? { ...x, can_edit: e.target.checked } : x)))} /> edita
                       </label>
                     </>
                   ) : (

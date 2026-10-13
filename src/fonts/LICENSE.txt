@@ -1,2 +1,0 @@
-Anton (Vernon Adams), DM Sans (Colophon Foundry / Google) e Spectral (Production Type) — distribuídas sob a SIL Open Font License 1.1.
-Arquivos woff2 copiados dos pacotes @fontsource para auto-hospedagem (sem dependência do Google Fonts em runtime/build).

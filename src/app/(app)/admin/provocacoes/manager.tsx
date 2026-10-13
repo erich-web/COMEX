@@ -46,13 +46,13 @@ export function PromptsManager({ prompts }: { prompts: P[] }) {
           </Button>
         </div>
       </Card>
-      <div className="divide-y divide-line border border-line bg-surface">
+      <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
         {prompts.map((p) => (
           <div key={p.id} className={cn("flex items-start gap-3 px-3 py-2.5", !p.is_active && "opacity-50")}>
-            <p className="min-w-0 flex-1 font-serif text-sm italic">
+            <p className="min-w-0 flex-1  text-sm italic">
               “{p.text}”{p.author ? <span className="ml-1 font-sans text-[11px] not-italic text-mute">— {p.author}</span> : null}
             </p>
-            <button className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink-2" onClick={() => start(async () => { const r = await upsertPrompt(p.id, p.text, p.author, !p.is_active); r.ok ? router.refresh() : toast.error(r.error); })}>
+            <button className="text-[10px] font-bold  text-ink-2" onClick={() => start(async () => { const r = await upsertPrompt(p.id, p.text, p.author, !p.is_active); r.ok ? router.refresh() : toast.error(r.error); })}>
               {p.is_active ? "Desativar" : "Ativar"}
             </button>
             <button className="p-1 text-mute hover:text-alert" aria-label="Excluir" onClick={() => start(async () => { const r = await deletePrompt(p.id); r.ok ? router.refresh() : toast.error(r.error); })}>

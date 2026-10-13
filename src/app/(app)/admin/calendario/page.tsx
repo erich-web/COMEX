@@ -18,16 +18,16 @@ export default async function CalendarioPage() {
   return (
     <div className="fade-in">
       <PageHeader title="Calendário e prazos" label="Administração" back="/admin" />
-      <Container className="space-y-6">
+      <Container className="space-y-6 py-4">
         <CalendarSettings calendar={settings.calendar} agendaDeadline={settings.agendaDeadline} prepDeadline={settings.prepDeadline} defaultBlocks={settings.defaultBlocks} />
         <section>
           <div className="mb-2 flex items-center justify-between">
             <div className="section-label">Próximas reuniões</div>
             <EnsureMeetingsButton />
           </div>
-          <div className="divide-y divide-line border border-line bg-surface">
+          <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
             {(meetings ?? []).map((m) => (
-              <Link key={m.id} href={`/admin/reunioes/${m.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-black/[0.03]">
+              <Link key={m.id} href={`/admin/reunioes/${m.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-primary/[0.03]">
                 <span className="w-24 text-sm font-semibold">{fmtDate(m.series_date, { weekday: "short", day: "2-digit", month: "short" })}</span>
                 <span className="text-sm text-mute tabular">{fmtTime(m.scheduled_at)}</span>
                 <span className="min-w-0 flex-1 truncate text-sm">{m.title}</span>

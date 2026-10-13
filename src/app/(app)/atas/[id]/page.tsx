@@ -13,7 +13,7 @@ import { MEETING_STATUS_LABELS, CATEGORY_LABELS } from "@/lib/constants";
 import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
 import { PrintButton } from "./print-button";
 
-export default async function ReuniaoPage({ params }: PageProps<"/reunioes/[id]">) {
+export default async function ReuniaoPage({ params }: PageProps<"/atas/[id]">) {
   const { id } = await params;
   const s = await requireMember();
   const supabase = await createClient();
@@ -35,7 +35,7 @@ export default async function ReuniaoPage({ params }: PageProps<"/reunioes/[id]"
       <PageHeader
         title={minutes?.title || m.title}
         label={`${fmtDate(m.series_date, { weekday: "long", day: "2-digit", month: "long", year: "numeric" })} · ${fmtTime(m.scheduled_at)}`}
-        back="/reunioes"
+        back="/atas"
         action={<Badge variant={m.status === "closed" ? "black" : "green"}>{MEETING_STATUS_LABELS[m.status]}</Badge>}
       >
         <div className="no-print mt-3 flex flex-wrap gap-2">
@@ -56,7 +56,7 @@ export default async function ReuniaoPage({ params }: PageProps<"/reunioes/[id]"
           ) : null}
         </div>
       </PageHeader>
-      <Container className="space-y-5">
+      <Container className="space-y-5 py-4">
         {(participants ?? []).length ? (
           <div className="text-xs text-mute">
             <span className="t-label">Participantes:</span> {(participants ?? []).map((p) => p.profile?.short_name ?? p.profile?.full_name).join(", ")}
@@ -66,7 +66,7 @@ export default async function ReuniaoPage({ params }: PageProps<"/reunioes/[id]"
         {minutes ? (
           <Card className="print:border-0">
             {minutes.status === "draft" ? <Badge variant="amber">Rascunho — visível só para administradores</Badge> : null}
-            {minutes.summary ? <p className="mb-3 font-serif text-base italic text-ink-2">{minutes.summary}</p> : null}
+            {minutes.summary ? <p className="mb-3  text-[15px] font-medium text-ink-2">{minutes.summary}</p> : null}
             {minutes.content ? <div className="whitespace-pre-wrap text-sm leading-relaxed">{minutes.content}</div> : <p className="text-sm text-mute">Conteúdo da ata disponível apenas no documento do Drive.</p>}
             {minutes.approved_at ? <div className="mt-4 text-[11px] text-mute">Aprovada em {fmtDateTime(minutes.approved_at)}</div> : null}
           </Card>
@@ -77,7 +77,7 @@ export default async function ReuniaoPage({ params }: PageProps<"/reunioes/[id]"
         {(decisions ?? []).length ? (
           <section>
             <div className="section-label mb-2">Decisões ({decisions!.length})</div>
-            <div className="divide-y divide-line border border-line bg-surface">
+            <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
               {decisions!.map((d) => (
                 <div key={d.id} className="flex items-start gap-3 px-3 py-3">
                   <Gavel className="mt-0.5 size-4 shrink-0 text-green-dark" />
@@ -106,9 +106,9 @@ export default async function ReuniaoPage({ params }: PageProps<"/reunioes/[id]"
         {(items ?? []).length ? (
           <section>
             <div className="section-label mb-2">Pautas discutidas</div>
-            <div className="divide-y divide-line border border-line bg-surface">
+            <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
               {items!.map((i) => (
-                <Link key={i.id} href={`/pautas/${i.id}`} className="block px-3 py-2.5 hover:bg-black/[0.03]">
+                <Link key={i.id} href={`/pautas/${i.id}`} className="block px-3 py-2.5 hover:bg-primary/[0.03]">
                   <div className="text-sm">{i.title}</div>
                   <div className="text-[11px] text-mute">
                     {CATEGORY_LABELS[i.category]} · {i.presenter?.short_name ?? i.author?.short_name}
@@ -122,9 +122,9 @@ export default async function ReuniaoPage({ params }: PageProps<"/reunioes/[id]"
         {(tasks ?? []).length ? (
           <section>
             <div className="section-label mb-2">
-              Tarefas originadas · {doneTasks.length}/{tasks!.length} concluídas
+              Compromissos · {doneTasks.length}/{tasks!.length} concluídas
             </div>
-            <div className="divide-y divide-line border border-line bg-surface">
+            <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
               {[...openTasks, ...doneTasks].map((t) => (
                 <TaskListItem key={t.id} task={t as TaskRow} today={today} showOwner />
               ))}

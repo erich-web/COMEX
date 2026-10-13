@@ -83,7 +83,7 @@ export function DecisionsPanel({ meetingId, decisions, items, profiles, units }:
             ))}
           </Select>
           <label className="col-span-2 flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4 accent-[#00b73d]" checked={f.create_task} onChange={(e) => setF({ ...f, create_task: e.target.checked })} /> Gerar tarefa para o responsável
+            <input type="checkbox" className="size-4 accent-[#2563eb]" checked={f.create_task} onChange={(e) => setF({ ...f, create_task: e.target.checked })} /> Gerar tarefa para o responsável
           </label>
         </div>
         <Button
@@ -147,7 +147,7 @@ export function MinutesEditor({ meetingId, initial }: { meetingId: string; initi
         </div>
       </div>
       <details className="border border-line">
-        <summary className="cursor-pointer px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-2">Anotações ou transcrição (geração assistida)</summary>
+        <summary className="cursor-pointer px-3 py-2 text-[11px] font-bold  text-ink-2">Anotações ou transcrição (geração assistida)</summary>
         <div className="space-y-2 px-3 pb-3">
           <Textarea value={f.source_notes} onChange={(e) => setF({ ...f, source_notes: e.target.value })} rows={6} placeholder="Cole aqui suas anotações ou a transcrição da reunião." />
           <Button

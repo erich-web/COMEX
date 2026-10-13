@@ -23,7 +23,7 @@ export default async function ProximoComexPage() {
     return (
       <div>
         <PageHeader title="Próximo COMEX" label="Agenda" />
-        <Container>
+        <Container className="py-4">
           <EmptyState title="Nenhuma reunião programada" icon={<CalendarDays />} />
         </Container>
       </div>
@@ -54,7 +54,7 @@ export default async function ProximoComexPage() {
                 <Presentation /> Modo reunião
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="border-offwhite/30 text-offwhite">
+            <Button asChild variant="outline" size="sm" className="border-white/30 text-white">
               <Link href={`/admin/reunioes/${meeting.id}`}>
                 <Settings2 /> Organizar
               </Link>
@@ -62,14 +62,14 @@ export default async function ProximoComexPage() {
           </div>
         ) : null}
       </PageHeader>
-      <GoalBanner compact goal={settings.goal2030.revenue_target} prompt={prompt?.text} className="border-t border-space" />
+      <GoalBanner compact goal={settings.goal2030.revenue_target} prompt={prompt?.text} className="border-t border-line" />
       <Container className="space-y-5 pt-5">
         {!published ? (
           <Card className="border-amber/40 bg-amber/10">
             <p className="text-sm">
               A agenda ainda está em preparação. Pautas podem ser enviadas até <strong>{settings.agendaDeadline.label.toLowerCase()}</strong>; o administrador publica a ordem final, horários e apresentadores.
             </p>
-            <Link href="/pautas/nova" className="mt-2 inline-block text-[11px] font-bold uppercase tracking-[0.1em] text-amber">
+            <Link href="/pautas/nova" className="mt-2 inline-block text-[13px] font-semibold text-primary">
               Enviar pautas →
             </Link>
           </Card>
@@ -78,9 +78,9 @@ export default async function ProximoComexPage() {
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="t-label">Business Review em profundidade:</span>
             {(units ?? []).map((u) => (
-              <Link key={u.id} href={`/unidades/${u.slug}`} className="border border-black px-2 py-1 text-[11px] font-bold uppercase tracking-[0.1em]">
+              <span key={u.id} className="rounded-md bg-primary-soft px-2 py-1 text-[12px] font-semibold text-primary-ink">
                 {u.name}
-              </Link>
+              </span>
             ))}
           </div>
         ) : null}

@@ -76,7 +76,7 @@ export function TaskActions({ taskId, status }: { taskId: string; status: TaskSt
           const Icon = STATUS_ICON[s];
           const active = status === s;
           return (
-            <button key={s} disabled={pending} onClick={() => !active && set(s)} className={cn("flex h-11 items-center gap-2 border px-3 text-[11px] font-bold uppercase tracking-[0.08em]", active ? "border-black bg-black text-offwhite" : "border-line bg-surface hover:border-black")}>
+            <button key={s} disabled={pending} onClick={() => !active && set(s)} className={cn("flex h-11 items-center gap-2 border px-3 text-[12px] font-bold", active ? "border-primary bg-primary text-white" : "border-line bg-surface hover:border-primary")}>
               <Icon className={cn("size-4", s === "blocked" && !active && "text-alert")} /> {TASK_STATUS_LABELS[s]}
             </button>
           );
@@ -223,7 +223,7 @@ export function TaskEditSheet({
               {profiles.map((p) => {
                 const on = f.assignees.includes(p.id);
                 return (
-                  <button key={p.id} type="button" onClick={() => setF({ ...f, assignees: on ? f.assignees.filter((x) => x !== p.id) : [...f.assignees, p.id] })} className={cn("border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em]", on ? "border-black bg-black text-offwhite" : "border-line")}>
+                  <button key={p.id} type="button" onClick={() => setF({ ...f, assignees: on ? f.assignees.filter((x) => x !== p.id) : [...f.assignees, p.id] })} className={cn("border px-2.5 py-1.5 text-[12px] font-bold", on ? "border-primary bg-primary text-white" : "border-line")}>
                     {p.name}
                   </button>
                 );

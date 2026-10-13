@@ -1,84 +1,81 @@
-# RPE COMEX
+# COMEX — Grupo RPE
 
-Plataforma de governança, performance e crescimento do Comitê Executivo do Grupo RPE. Mobile-first, com banco real (Supabase), autenticação por link mágico e tudo orientado à meta **RPE 2030 — R$ 200 milhões**.
+Plataforma do Comitê Executivo do Grupo RPE, pensada para o celular e para a dinâmica da terça-feira: **enviar pautas em lote**, **arquivar e consultar as atas** e um **Agente COMEX** que lê atas e pautas para apontar problemas recorrentes, decisões travadas, ideias de crescimento e perguntas críticas.
 
-- **Stack:** Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind v4 · Lucide · Recharts · Supabase (Postgres + Auth + Storage + RLS) · Zod.
-- **Design:** brandbook RPE (preto `#0F0F0F`, off-white `#F5F4F0`, verde `#00B73D`; Anton / Spectral / DM Sans auto-hospedadas; geometria angular).
-- **Protótipo anterior:** preservado em `legacy/` (`legacy/index.html` e `legacy/quadro/`). Seu histórico (31 atas, 203 tarefas) foi importado para o banco.
+- **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Lucide · Supabase (Postgres + Auth + Storage + RLS) · Zod · API da Anthropic (agente).
+- **Visual:** padrão interno "SaaS azul" (fundo slate, cards brancos, azul `#2563eb`, fonte do sistema) — o mesmo do sistema de RH e do dashboard Campos Hall.
+- **Protótipo aprovado:** canvas "COMEX — protótipo simplificado" (4 telas de celular + desktop de organização). O protótipo anterior, em preto/verde, foi substituído.
+
+## O que o app faz
+
+| Celular (4 abas) | |
+|---|---|
+| **Início** | botão único "Enviar pautas", provocação da semana, o que te espera na terça (suas pautas, compromissos vencendo, Business Review), último aviso do agente |
+| **Pautas** | envio de várias pautas num só envio — **título, pergunta-chave, duração (chips), temática (chips), empresa (chips)**; contexto e links opcionais; rascunho local; idempotente; validação por pauta |
+| **Atas** | busca por texto, filtros (com decisões, minha unidade, ano), card da última ata com resumo, decisões, compromissos e PDF no Drive; histórico importado (31 atas) |
+| **Agente** | cards de *problema recorrente*, *decisão em aberto*, *ideia de crescimento*, *pergunta crítica* e *sugestão*, cada um com "Virar pauta" e links para as atas de origem; caixa de pergunta livre |
+
+**Desktop (quem organiza):** `/admin` — pautas recebidas à esquerda, agenda da terça à direita com minutos por bloco e alerta de excesso; "Sugestão do agente" distribui as pautas nos blocos; publicar agenda; blocos/participantes/ata; compromissos de todos com accountability por pessoa; pessoas e empresas; configurações (calendário, provocações). Modo reunião em `/apresentar/[id]`.
+
+Temáticas: Crescimento e vendas · Decisão estratégica · Problema e solução · Ideia / inovação · Prestação de contas · Conhecimento.
 
 ## Estrutura
 
 ```
-src/
-  app/
-    login/              login por magic link
-    auth/               callback, signout, test-login (só E2E)
-    (app)/              área autenticada (bottom nav mobile + sidebar desktop)
-      page.tsx          dashboard pessoal
-      pautas/           minhas pautas · nova (envio múltiplo) · [id]
-      tarefas/          minhas tarefas · nova · [id]
-      unidades/[slug]/  performance · indicadores · checkin
-      proximo-comex/ reunioes/ growth/ rpe-2030/ perfil/ mais/
-      admin/            painel do CEO, pautas (quadro), reuniões/[id] (blocos, ata), tarefas, usuários, unidades, calendário, metas, provocações
-    apresentar/[id]/    modo reunião (tela grande)
-    enviar-pautas/      link permanente → /pautas/nova
-  actions/              server actions (zod + RLS)
-  lib/                  auth, queries, agenda (cálculo de tempo), strategy (CAGR/gap), dates (America/Sao_Paulo), classify (heurística), supabase clients
-  components/           ui (botões, cards, sheet, toast) e app (shell, header, timeline, task item)
-  fonts/                woff2 (OFL)
-supabase/migrations/    schema · funções/RLS · seed base · seed do histórico legado
-scripts/legacy-seed.mjs gera o seed legado a partir de legacy/index.html
+src/app/
+  login/ auth/ pendente/        login por magic link; test-login só com E2E_TEST_LOGIN=1
+  (app)/page.tsx                Início
+  (app)/pautas/                 minhas pautas · nova (lote) · [id]
+  (app)/atas/                   lista · [id]
+  (app)/agente/                 Agente COMEX
+  (app)/tarefas/                compromissos (via Início e atas)
+  (app)/proximo-comex/          agenda publicada da terça
+  (app)/admin/                  organizar a terça (page) · reunioes/[id] (blocos, ata) · tarefas · usuarios · unidades · calendario · provocacoes
+  apresentar/[id]/              modo reunião (tela grande)
+  enviar-pautas/                link permanente → /pautas/nova
+src/actions/                    server actions (zod + RLS): agenda, agent, tasks, meetings, admin, ai
+src/lib/llm.ts                  chamada à API da Anthropic (server-only)
+supabase/migrations/            schema · funções/RLS · seeds · hardening · simplify_agent (key_question, agent_insights, agent_questions)
 tests/unit (Vitest) · tests/e2e (Playwright)
 ```
 
 ## Configuração
 
-1. **Supabase** — projeto `rpe-comex` (`ayjcvwohmgehaitysjqa`, já criado e migrado). Para um projeto novo, aplique `supabase/migrations/*.sql` em ordem (Dashboard → SQL ou `supabase db push`).
-2. **Auth** → *URL Configuration*: `Site URL` = URL pública do app; adicione `https://SEU-DOMINIO/auth/callback` em *Redirect URLs*. Provedor *Email* com magic link habilitado (Google opcional).
-3. **Variáveis** — copie `.env.example` para `.env.local`:
-   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (chave *publishable*; nunca use a `service_role` no app)
-   - `NEXT_PUBLIC_APP_URL` (usada no link permanente `/enviar-pautas`)
-   - `ANTHROPIC_API_KEY` (opcional — habilita a geração assistida de atas e classificação por IA)
+1. **Supabase** — projeto `rpe-comex` (`ayjcvwohmgehaitysjqa`), migrado até `20261013000600_simplify_agent.sql`. Para um projeto novo, aplique `supabase/migrations/*.sql` em ordem.
+2. **Auth** → *URL Configuration*: Site URL = URL pública; `https://SEU-DOMINIO/auth/callback` em Redirect URLs. Provedor Email (magic link).
+3. **Variáveis** (`.env.example`):
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (nunca a `service_role`)
+   - `NEXT_PUBLIC_APP_URL` (link permanente `/enviar-pautas`)
+   - `ANTHROPIC_API_KEY` — **obrigatória para o Agente** (análises, pergunta livre e sugestão de agenda); `ANTHROPIC_MODEL` opcional
 4. `npm install && npm run dev`
 
 ## Deploy (Vercel)
 
-Projeto `comex` (time `erich-webs-projects`), produção em **https://comex-omega.vercel.app**. As três variáveis `NEXT_PUBLIC_*` já estão configuradas no projeto; cada push em `main` gera um deploy de produção. Não defina `E2E_TEST_LOGIN` em produção.
-
-Para outro ambiente: importe o repositório, defina as variáveis acima em *Environment Variables*, adicione `https://SEU-DOMINIO/auth/callback` nas *Redirect URLs* do Supabase e publique.
+Projeto `comex` (time `erich-webs-projects`), produção em **https://comex-omega.vercel.app**. Push em `main` = deploy. Para ativar o agente, adicione `ANTHROPIC_API_KEY` em *Environment Variables* e faça um redeploy. Não defina `E2E_TEST_LOGIN` em produção.
 
 ## Acesso e permissões
 
-- Quem entra é quem está em **Administração → Usuários** (tabela `invited_users`): o primeiro login com o e-mail convidado recebe papel e unidades automaticamente. E-mails não convidados entram como *convidado inativo* e veem a tela “Acesso em liberação”.
-- Convites iniciais: `erich@gruporpe.com.br` (admin). Os e-mails de Luiz, João, Felipe e Bruno foram cadastrados como `nome@gruporpe.com.br` — **confirme/edite antes de compartilhar o link**.
-- Papéis: `admin` (tudo), `executive`, `unit_lead`, `guest`. A edição de indicadores/check-in depende da associação à unidade (`business_unit_members.can_edit`). Tudo é imposto por RLS no banco.
-- Tarefas importadas do protótipo têm o responsável em texto; em **Painel do CEO → Vincular por nome** elas são ligadas aos perfis assim que as pessoas entram.
+- Entra quem está em **Pessoas e empresas** (`invited_users`); o primeiro login recebe papel e empresas. E-mails não convidados veem "Acesso em liberação".
+- Convites iniciais: `erich@gruporpe.com.br` (admin). Luiz, João, Felipe e Bruno estão como `nome@gruporpe.com.br` — confirme antes de divulgar o link.
+- Papéis `admin`, `executive`, `unit_lead`, `guest`; tudo imposto por RLS. O agente responde apenas com os dados que o usuário pode ver.
+- Compromissos importados têm o responsável em texto; em Compromissos → "Vincular por nome" eles são ligados aos perfis.
 
-## Rotina semanal (configurável em Administração → Calendário)
+## Rotina (editável em Configurações)
 
 | Quando | O quê |
 |---|---|
-| Sexta 17h | prazo recomendado para pautas (`/enviar-pautas`) |
-| Segunda 18h | indicadores, tarefas e check-in das unidades |
-| Terça 9h–12h | COMEX (reuniões criadas automaticamente; reagendar/cancelar não altera a recorrência) |
+| Sexta 17h | prazo recomendado para pautas |
+| Segunda 18h | organização da agenda e análise do agente |
+| Terça 9h–12h | COMEX |
 
-Fora do prazo nada é bloqueado — a contribuição é marcada como atrasada/extraordinária.
+Fora do prazo nada é bloqueado — a pauta entra como extraordinária.
 
 ## Testes
 
 ```bash
-npm run test:unit      # Vitest — cálculo de agenda/excesso de tempo, datas em SP, CAGR/gap, classificação
-npm run build
-E2E_TEST_LOGIN=1 npm run start   # em outro terminal
-npm run test:e2e       # Playwright — iPhone 375×812 e Android 390×844
+npm run test:unit                 # Vitest
+npm run build && E2E_TEST_LOGIN=1 npm run start
+npm run test:e2e                  # Playwright — iPhone 375×812 e Android 390×844
 ```
 
-O E2E usa dois usuários de QA já existentes no projeto (`qa.admin@` e `qa.exec@gruporpe.com.br`, senha em `E2E_QA_PASSWORD`, padrão `Comex-QA-2026!`) e a rota `/auth/test-login`, que só existe com `E2E_TEST_LOGIN=1`. Remova os usuários de QA em Administração → Usuários quando não precisar mais. Em ambientes sem Chromium do Playwright, aponte `PLAYWRIGHT_CHROMIUM_PATH`.
-
-Os fluxos do MVP também foram verificados diretamente no banco sob RLS (lote de 5 pautas idempotente, isolamento entre usuários, decisão → tarefa com histórico e notificação, publicação da agenda).
-
-## Fases
-
-- **Fase 1 (esta entrega):** fundação, auth, perfis/permissões, dashboard, envio múltiplo de pautas com rascunho e idempotência, organização administrativa com controle de tempo por bloco, calendário recorrente, tarefas (status, comentários, evidências no Storage), atas com decisões ligadas a tarefas, indicadores e check-in semanal, Growth RPE, RPE 2030 (CAGR, gap, cenários), provocações, notificações in-app, modo reunião.
-- **Fase 2:** IA (`src/actions/ai.ts` já modular: atas a partir de anotações e classificação de pautas quando `ANTHROPIC_API_KEY` existe), análises automáticas mais profundas, assistente do CEO.
-- **Fase 3:** Everest/BI, e-mail transacional, WhatsApp Business API, calendário externo.
+E2E usa `qa.admin@` e `qa.exec@gruporpe.com.br` (senha em `E2E_QA_PASSWORD`). Remova os usuários de QA quando não precisar mais. O lote de pautas com pergunta-chave foi verificado também diretamente no banco sob RLS.

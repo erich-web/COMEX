@@ -35,8 +35,8 @@ export function Toaster() {
           key={t.id}
           role="status"
           className={cn(
-            "pointer-events-auto flex w-full max-w-md items-start gap-3 border px-4 py-3 shadow-lg fade-up",
-            t.kind === "error" ? "bg-alert text-white border-alert" : t.kind === "info" ? "bg-dark text-offwhite border-space" : "bg-black text-offwhite border-black",
+            "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border px-4 py-3 shadow-lg fade-up",
+            t.kind === "error" ? "bg-alert text-white border-alert" : t.kind === "info" ? "bg-ink text-white border-ink" : "bg-ink text-white border-ink",
           )}
         >
           {t.kind === "error" ? <AlertTriangle className="mt-0.5 size-4 shrink-0" /> : <CheckCircle2 className={cn("mt-0.5 size-4 shrink-0", t.kind === "ok" && "text-green")} />}

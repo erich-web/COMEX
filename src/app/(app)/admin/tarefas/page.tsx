@@ -9,8 +9,9 @@ import { EmptyState, Select } from "@/components/ui/primitives";
 import { Button } from "@/components/ui/button";
 import { TaskListItem } from "@/components/app/task-item";
 import { cn } from "@/lib/utils";
+import { AccountabilityByPerson } from "../accountability";
 
-export const metadata = { title: "Tarefas de todos" };
+export const metadata = { title: "Compromissos" };
 
 export default async function AdminTarefasPage({ searchParams }: PageProps<"/admin/tarefas">) {
   const sp = await searchParams;
@@ -48,9 +49,8 @@ export default async function AdminTarefasPage({ searchParams }: PageProps<"/adm
   return (
     <div className="fade-in">
       <PageHeader
-        title="Tarefas de todos"
-        label="Accountability consolidado"
-        back="/admin"
+        title="Compromissos"
+        label="De todos os executivos"
         action={
           <Button asChild variant="primary" size="sm">
             <Link href="/tarefas/nova">
@@ -78,22 +78,23 @@ export default async function AdminTarefasPage({ searchParams }: PageProps<"/adm
               </option>
             ))}
           </Select>
-          <button className="col-span-2 h-10 border border-black text-[11px] font-bold uppercase tracking-[0.12em]">Aplicar filtros</button>
+          <button className="col-span-2 h-10 rounded-[10px] border border-line-2 bg-surface text-[13px] font-semibold text-ink-2">Aplicar filtros</button>
         </form>
         <div className="scroll-x -mx-4 mt-3 flex gap-1 px-4 md:mx-0 md:px-0">
           {FILTERS.map(([k, l]) => (
-            <Link key={k} href={qs({ f: k })} className={cn("shrink-0 border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em]", f === k ? "border-black bg-black text-offwhite" : "border-line bg-surface text-ink-2")}>
+            <Link key={k} href={qs({ f: k })} className={cn("shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-medium", f === k ? "border-primary bg-primary-soft font-semibold text-primary-ink" : "border-line-2 bg-surface text-ink-2")}>
               {l}
             </Link>
           ))}
         </div>
       </PageHeader>
-      <Container>
-        <div className="mb-2 text-xs text-mute">{list.length} tarefa(s)</div>
+      <Container className="space-y-4 py-4">
+        {f === "open" && !owner && !unit ? <AccountabilityByPerson /> : null}
+        <div className="mb-2 text-xs text-mute">{list.length} compromisso(s)</div>
         {list.length === 0 ? (
           <EmptyState title="Nada aqui" />
         ) : (
-          <div className="divide-y divide-line border border-line bg-surface">
+          <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
             {list.map((t) => (
               <TaskListItem key={t.id} task={t} today={today} showOwner />
             ))}

@@ -1,4 +1,3 @@
-// Gerado via Supabase MCP (generate_typescript_types). Regenerar após migrations.
 export type Json =
   | string
   | number
@@ -115,6 +114,7 @@ export type Database = {
           expected_impact: string | null
           expected_outcome: string | null
           id: string
+          key_question: string | null
           links: Json
           meeting_id: string | null
           people_involved: string | null
@@ -150,6 +150,7 @@ export type Database = {
           expected_impact?: string | null
           expected_outcome?: string | null
           id?: string
+          key_question?: string | null
           links?: Json
           meeting_id?: string | null
           people_involved?: string | null
@@ -185,6 +186,7 @@ export type Database = {
           expected_impact?: string | null
           expected_outcome?: string | null
           id?: string
+          key_question?: string | null
           links?: Json
           meeting_id?: string | null
           people_involved?: string | null
@@ -301,6 +303,111 @@ export type Database = {
             columns: ["target_meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_insights: {
+        Row: {
+          agenda_item_id: string | null
+          body: string
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          kind: string
+          run_id: string
+          score: number
+          status: string
+          suggestion: string | null
+          title: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agenda_item_id?: string | null
+          body?: string
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          kind: string
+          run_id: string
+          score?: number
+          status?: string
+          suggestion?: string | null
+          title: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agenda_item_id?: string | null
+          body?: string
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          kind?: string
+          run_id?: string
+          score?: number
+          status?: string
+          suggestion?: string | null
+          title?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_insights_agenda_item_id_fkey"
+            columns: ["agenda_item_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_insights_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_insights_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_questions: {
+        Row: {
+          answer: string | null
+          created_at: string
+          id: string
+          profile_id: string
+          question: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          profile_id: string
+          question: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          profile_id?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_questions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

@@ -3,7 +3,8 @@ import { optionalText, optionalUuid } from "@/actions/_helpers";
 
 export const agendaItemSchema = z.object({
   title: z.string().trim().min(3, "Dê um título com pelo menos 3 caracteres.").max(200, "Máximo de 200 caracteres."),
-  description: z.string().trim().min(10, "Descreva o contexto (mínimo 10 caracteres).").max(4000),
+  key_question: z.string().trim().min(8, "Escreva a pergunta que o COMEX precisa responder.").max(600, "Máximo de 600 caracteres."),
+  description: z.string().trim().max(4000).optional().default(""),
   unit_id: optionalUuid,
   expected_outcome: optionalText(1000),
   category: z.enum(["strategic_decision", "accountability", "business_review", "brainstorm", "knowledge", "marketing_sales", "innovation", "other"]).default("other"),

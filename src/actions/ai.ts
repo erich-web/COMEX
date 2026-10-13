@@ -5,23 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/types";
 import { fail } from "./_helpers";
 import { fmtDate } from "@/lib/format";
+import { callModel } from "@/lib/llm";
 
 /**
  * Camada de IA modular (Fase 2). Usa a API da Anthropic quando ANTHROPIC_API_KEY está configurada.
  * Regras: nunca inventar participantes, decisões ou prazos; sempre retornar rascunho para revisão humana.
  */
-async function callModel(system: string, user: string, maxTokens = 2000): Promise<string> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error("ANTHROPIC_API_KEY não configurada. Defina a variável no servidor para habilitar a geração assistida.");
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5", max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
-  });
-  if (!res.ok) throw new Error(`IA indisponível (${res.status}).`);
-  const data = (await res.json()) as { content: { type: string; text?: string }[] };
-  return data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("\n");
-}
 
 /** Sugere ata (resumo + conteúdo) a partir de anotações/transcrição — rascunho para revisão. */
 export async function draftMinutesFromNotes(meetingId: string, notes: string): Promise<ActionResult<{ summary: string; content: string }>> {

@@ -11,7 +11,7 @@ export default async function NovaTarefaPage() {
   return (
     <div className="fade-in">
       <PageHeader title="Nova tarefa" label="Compromisso" back="/tarefas" />
-      <Container>
+      <Container className="py-4">
         <NewTaskForm me={s.profile.id} profiles={profiles.map((p) => ({ id: p.id, name: p.short_name ?? p.full_name }))} units={units.map((u) => ({ id: u.id, name: u.name }))} defaultUnit={s.units[0]?.unit_id ?? ""} />
       </Container>
     </div>

@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getGoals, getUnits } from "@/lib/queries";
-import { PageHeader, Container } from "@/components/app/page-header";
+import { getUnits } from "@/lib/queries";
+import { PageHeader } from "@/components/app/page-header";
 import { Badge, Card } from "@/components/ui/primitives";
-import { AGENDA_STATUS_LABELS, CATEGORY_LABELS, URGENCY_LABELS } from "@/lib/constants";
+import { AGENDA_STATUS_LABELS, CATEGORY_LABELS } from "@/lib/constants";
 import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
 import { AgendaItemEditor, AgendaComments } from "./editor";
 
@@ -13,36 +13,36 @@ export default async function PautaDetailPage({ params }: PageProps<"/pautas/[id
   const { id } = await params;
   const s = await requireMember();
   const supabase = await createClient();
-  const [{ data: item }, { data: comments }, units, goals] = await Promise.all([
+  const [{ data: item }, { data: comments }, units] = await Promise.all([
     supabase
       .from("agenda_items")
-      .select("*, unit:business_units(name), goal:strategic_goals(name), meeting:meetings(id,series_date,scheduled_at,status), block:meeting_blocks(title), presenter:profiles!agenda_items_presenter_id_fkey(short_name,full_name), author:profiles!agenda_items_submitted_by_fkey(short_name,full_name)")
+      .select("*, unit:business_units(name,slug), meeting:meetings(id,series_date,scheduled_at,status), block:meeting_blocks(title), presenter:profiles!agenda_items_presenter_id_fkey(short_name,full_name), author:profiles!agenda_items_submitted_by_fkey(short_name,full_name)")
       .eq("id", id)
       .maybeSingle(),
     supabase.from("agenda_comments").select("id,body,created_at,author:profiles(short_name,full_name)").eq("item_id", id).order("created_at"),
     getUnits(),
-    getGoals(),
   ]);
   if (!item) notFound();
   const mine = item.submitted_by === s.profile.id;
   const editable = mine && ["received", "returned", "in_review"].includes(item.status);
   const links = (item.links as { label?: string; url: string }[]) ?? [];
+  const unitName = item.unit ? (item.unit.slug === "grupo-holding" ? "Grupo" : item.unit.name) : "Grupo";
 
   return (
     <div className="fade-in">
-      <PageHeader title={item.title} label={CATEGORY_LABELS[item.category]} back="/pautas" action={<Badge variant={item.status === "returned" ? "alert" : ["approved", "scheduled"].includes(item.status) ? "green" : "soft"}>{AGENDA_STATUS_LABELS[item.status]}</Badge>} />
-      <Container className="space-y-4">
+      <PageHeader title={item.title} label={`${CATEGORY_LABELS[item.category]} · ${unitName}`} back="/pautas" action={<Badge variant={item.status === "returned" ? "alertSoft" : ["approved", "scheduled"].includes(item.status) ? "green" : "soft"}>{AGENDA_STATUS_LABELS[item.status]}</Badge>} />
+      <div className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-8">
         {item.status === "returned" && item.return_reason ? (
-          <Card className="border-alert/50 bg-alert/5">
-            <div className="t-label text-alert">Devolvida para complementação</div>
+          <Card className="border-alert/40 bg-alert-soft">
+            <div className="text-[12px] font-semibold text-alert">Devolvida para ajuste</div>
             <p className="mt-1 text-sm">{item.return_reason}</p>
           </Card>
         ) : null}
         {item.meeting ? (
           <Card green className="flex items-center justify-between gap-3">
             <div>
-              <div className="t-label text-black/60">Agendada</div>
-              <div className="t-display text-lg">
+              <div className="text-[12px] font-semibold">Na agenda</div>
+              <div className="text-base font-bold">
                 COMEX {fmtDate(item.meeting.series_date, { day: "2-digit", month: "long" })} · {fmtTime(item.meeting.scheduled_at)}
               </div>
               <div className="text-sm">
@@ -51,36 +51,33 @@ export default async function PautaDetailPage({ params }: PageProps<"/pautas/[id
                 {item.presenter ? ` · apresenta: ${item.presenter.short_name ?? item.presenter.full_name}` : ""}
               </div>
             </div>
-            <Link href="/proximo-comex" className="shrink-0 text-[11px] font-bold uppercase tracking-[0.1em]">
-              Ver agenda
-            </Link>
+            {s.isAdmin ? (
+              <Link href="/admin" className="shrink-0 text-[13px] font-semibold">
+                Organizar
+              </Link>
+            ) : null}
           </Card>
         ) : null}
 
         {editable ? (
-          <AgendaItemEditor item={item} units={units.map((u) => ({ id: u.id, name: u.name }))} goals={goals.map((g) => ({ id: g.id, name: g.name }))} />
+          <AgendaItemEditor item={item} units={units.map((u) => ({ id: u.id, name: u.name, slug: u.slug }))} />
         ) : (
           <Card className="space-y-4">
-            <Field label="Contexto" value={item.description} />
+            <Field label="Pergunta-chave" value={item.key_question ?? item.expected_outcome} />
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Unidade" value={item.unit?.name ?? "Grupo / transversal"} />
-              <Field label="Urgência" value={URGENCY_LABELS[item.urgency]} />
-              <Field label="Resultado esperado" value={item.expected_outcome} />
-              <Field label="Tempo sugerido" value={item.suggested_minutes ? `${item.suggested_minutes} min` : null} />
-              <Field label="Objetivo estratégico" value={item.goal?.name} />
-              <Field label="Exige decisão" value={item.requires_decision ? "Sim" : "Não"} />
+              <Field label="Duração" value={item.allotted_minutes ?? item.suggested_minutes ? `${item.allotted_minutes ?? item.suggested_minutes} min` : null} />
+              <Field label="Empresa" value={unitName} />
             </div>
-            <Field label="Problema" value={item.problem} />
-            <Field label="Solução proposta" value={item.proposed_solution} />
-            <Field label="Impacto esperado" value={item.expected_impact} />
-            <Field label="Pessoas envolvidas" value={item.people_involved} />
+            <Field label="Contexto" value={item.description} />
+            {item.problem ? <Field label="Problema" value={item.problem} /> : null}
+            {item.proposed_solution ? <Field label="Solução proposta" value={item.proposed_solution} /> : null}
             {links.length ? (
               <div>
-                <div className="t-label mb-1">Links</div>
+                <div className="mb-1 text-[12px] font-semibold text-mute">Links</div>
                 <ul className="space-y-1 text-sm">
                   {links.map((l, i) => (
                     <li key={i}>
-                      <a className="break-all text-green-dark underline" href={l.url} target="_blank" rel="noreferrer">
+                      <a className="break-all text-primary underline" href={l.url} target="_blank" rel="noreferrer">
                         {l.label || l.url}
                       </a>
                     </li>
@@ -95,7 +92,7 @@ export default async function PautaDetailPage({ params }: PageProps<"/pautas/[id
         )}
 
         <AgendaComments itemId={item.id} comments={(comments ?? []).map((c) => ({ id: c.id, body: c.body, created_at: c.created_at, author: c.author?.short_name ?? c.author?.full_name ?? "" }))} />
-      </Container>
+      </div>
     </div>
   );
 }
@@ -103,7 +100,7 @@ export default async function PautaDetailPage({ params }: PageProps<"/pautas/[id
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
-      <div className="t-label mb-0.5">{label}</div>
+      <div className="mb-0.5 text-[12px] font-semibold text-mute">{label}</div>
       <div className={value ? "whitespace-pre-wrap text-sm" : "text-sm text-mute"}>{value || "Não informado"}</div>
     </div>
   );

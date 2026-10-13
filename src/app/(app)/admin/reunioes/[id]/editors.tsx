@@ -75,7 +75,7 @@ export function MeetingSettings({ meeting, prompts, units, profiles, participant
             {units.map((u) => {
               const on = f.review_unit_ids.includes(u.id);
               return (
-                <button key={u.id} type="button" onClick={() => setF({ ...f, review_unit_ids: on ? f.review_unit_ids.filter((x) => x !== u.id) : f.review_unit_ids.length < 4 ? [...f.review_unit_ids, u.id] : f.review_unit_ids })} className={cn("border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em]", on ? "border-black bg-black text-offwhite" : "border-line")}>
+                <button key={u.id} type="button" onClick={() => setF({ ...f, review_unit_ids: on ? f.review_unit_ids.filter((x) => x !== u.id) : f.review_unit_ids.length < 4 ? [...f.review_unit_ids, u.id] : f.review_unit_ids })} className={cn("border px-2.5 py-1.5 text-[12px] font-bold", on ? "border-primary bg-primary text-white" : "border-line")}>
                   {u.name}
                 </button>
               );
@@ -88,7 +88,7 @@ export function MeetingSettings({ meeting, prompts, units, profiles, participant
             {profiles.map((p) => {
               const on = parts.includes(p.id);
               return (
-                <button key={p.id} type="button" onClick={() => setParts(on ? parts.filter((x) => x !== p.id) : [...parts, p.id])} className={cn("border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em]", on ? "border-green bg-green text-black" : "border-line")}>
+                <button key={p.id} type="button" onClick={() => setParts(on ? parts.filter((x) => x !== p.id) : [...parts, p.id])} className={cn("border px-2.5 py-1.5 text-[12px] font-bold", on ? "border-primary bg-primary text-white" : "border-line")}>
                   {p.name}
                 </button>
               );

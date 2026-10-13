@@ -18,7 +18,7 @@ export default async function AdminUnidadesPage() {
   return (
     <div className="fade-in">
       <PageHeader title="Unidades e indicadores" label="Administração" back="/admin" />
-      <Container>
+      <Container className="py-4">
         <UnitsManager
           units={(units ?? []).map((u) => ({ ...u, kpi_ids: (unitKpis ?? []).filter((k) => k.unit_id === u.id && k.is_active).map((k) => k.kpi_id), members: (members ?? []).filter((m) => m.unit_id === u.id).map((m) => ({ profile_id: m.profile_id, name: m.profile?.short_name ?? m.profile?.full_name ?? "", is_lead: m.is_lead, can_edit: m.can_edit })) }))}
           kpis={kpis ?? []}

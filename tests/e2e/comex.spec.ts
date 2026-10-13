@@ -18,9 +18,9 @@ async function login(page: Page, user: { email: string; password: string }) {
 test.describe("Executivo — mobile", () => {
   test("1-3. entra pelo celular, vê meta RPE 2030, provocação e tarefas pendentes", async ({ page }) => {
     await login(page, EXEC);
-    await expect(page.getByText("RPE 2030 —")).toBeVisible();
-    await expect(page.locator("text=/“.+”/").first()).toBeVisible(); // provocação
-    await expect(page.getByRole("heading", { name: "Minhas tarefas" })).toBeVisible();
+    await expect(page.getByText("Provocação da semana")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Enviar pautas para a próxima terça/ })).toBeVisible();
+    await expect(page.getByText(/Próximo COMEX/)).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Navegação principal" })).toBeVisible();
     // sem rolagem horizontal
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
@@ -37,7 +37,7 @@ test.describe("Executivo — mobile", () => {
     for (let i = 0; i < titles.length; i++) {
       if (i > 0) await page.getByRole("button", { name: /Adicionar outra pauta/i }).click();
       await page.locator(`#t-${i}`).fill(titles[i]);
-      await page.locator(`#d-${i}`).fill(`Contexto da pauta ${i + 1}: o que está acontecendo e o que precisamos discutir no COMEX.`);
+      await page.locator(`#q-${i}`).fill(`O que o COMEX precisa decidir sobre a pauta ${i + 1}?`);
     }
     await page.screenshot({ path: `tests/e2e/screenshots/pautas-form-${test.info().project.name}.png`, fullPage: true });
     const submit = page.getByRole("button", { name: "Enviar 5 pautas" });
@@ -53,11 +53,11 @@ test.describe("Executivo — mobile", () => {
     await login(page, EXEC);
     await page.goto("/pautas/nova");
     await page.locator("#t-0").fill("Pauta completa de validação");
-    await page.locator("#d-0").fill("Descrição suficientemente longa para passar na validação.");
+    await page.locator("#q-0").fill("Qual decisão precisamos tomar sobre isso?");
     await page.getByRole("button", { name: /Adicionar outra pauta/i }).click();
     await page.locator("#t-1").fill("X"); // título curto
     await page.getByRole("button", { name: "Enviar 2 pautas" }).click();
-    await expect(page.getByText(/precisa de correção/i).first()).toBeVisible();
+    await expect(page.getByText(/precisa de ajuste/i).first()).toBeVisible();
     await expect(page.locator("#t-0")).toHaveValue("Pauta completa de validação");
   });
 
@@ -77,30 +77,10 @@ test.describe("Executivo — mobile", () => {
     await expect(page.getByText("Concluída", { exact: true }).first()).toBeVisible();
   });
 
-  test("9. atualiza indicadores da unidade e 10. registra check-in com problemas, soluções e ações comerciais", async ({ page }) => {
-    await login(page, EXEC);
-    await page.goto("/unidades/mercearia-amauri/indicadores");
-    await expect(page.getByRole("heading", { name: "Atualizar indicadores" })).toBeVisible();
-    const first = page.getByPlaceholder("—").first();
-    await first.fill("182500");
-    await page.getByRole("button", { name: /Salvar/ }).click();
-    await expect(page).toHaveURL(/\/unidades\/mercearia-amauri$/);
-    await expect(page.getByText("R$ 182.500")).toBeVisible();
-
-    await page.goto("/unidades/mercearia-amauri/checkin");
-    await page.getByPlaceholder(/abaixo do orçado/).fill("Semana 6% abaixo do orçado; sábado forte.");
-    await page.getByRole("button", { name: "Adicionar problema" }).click();
-    await page.getByPlaceholder("Problema 1").fill("CMV acima de 32%");
-    await page.getByPlaceholder("Uma iniciativa, mensurável").fill("Sábado de feijoada com venda ativa na porta");
-    await page.getByRole("button", { name: "Adicionar compromisso" }).click();
-    await page.getByPlaceholder("Compromisso").fill(`Revisar fichas técnicas E2E ${Date.now()}`);
-    await page.getByRole("button", { name: /Registrar check-in|Atualizar check-in/ }).click();
-    await expect(page.getByText(/Check-in registrado/)).toBeVisible();
-  });
 
   test("8. consulta atas anteriores (histórico importado)", async ({ page }) => {
     await login(page, EXEC);
-    await page.goto("/reunioes");
+    await page.goto("/atas");
     await expect(page.getByText("Desempenho, Direcionamento, Desenvolvimento e Defesa")).toBeVisible();
     await page.getByText("Desempenho, Direcionamento, Desenvolvimento e Defesa").click();
     await expect(page.getByText(/Feijoada Mercearia Amauri/)).toBeVisible();
@@ -109,18 +89,17 @@ test.describe("Executivo — mobile", () => {
 
   test("permissões: executivo não acessa administração", async ({ page }) => {
     await login(page, EXEC);
-    await page.goto("/admin/pautas");
+    await page.goto("/admin");
     await expect(page).toHaveURL(/\/$/);
-    await page.goto("/mais");
-    await expect(page.getByText("Administração")).toHaveCount(0);
+    await expect(page.getByText("Organização")).toHaveCount(0);
   });
 });
 
 test.describe("Administrador", () => {
   test("11-12. vê pautas recebidas, organiza em bloco com controle de tempo e publica a agenda", async ({ page }) => {
     await login(page, ADMIN);
-    await page.goto("/admin/pautas");
-    await expect(page.getByRole("heading", { name: "Organizar pautas" })).toBeVisible();
+    await page.goto("/admin");
+    await expect(page.getByRole("heading", { name: "Organizar a reunião" })).toBeVisible();
     const card = page.locator('[role="button"]').filter({ hasText: /Estudos de cardápio/ }).first();
     await expect(card).toBeVisible();
     await card.click();
@@ -155,8 +134,7 @@ test.describe("Administrador", () => {
 
   test("17. accountability: painel consolidado por pessoa", async ({ page }) => {
     await login(page, ADMIN);
-    await page.goto("/admin");
+    await page.goto("/admin/tarefas");
     await expect(page.getByText("Accountability por pessoa")).toBeVisible();
-    await expect(page.getByText("Tarefas atrasadas")).toBeVisible();
   });
 });

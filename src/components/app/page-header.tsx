@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Cabeçalho de página mobile-first. */
+/** Cabeçalho de página mobile-first: fundo branco, borda inferior, título à esquerda e ação à direita. */
 export function PageHeader({
   title,
   label,
@@ -19,18 +19,20 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className={cn("px-4 pt-4 pb-3 md:px-8 md:pt-8", dark && "bg-black text-offwhite")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <header className={cn("border-b border-line bg-surface px-4 pb-3 pt-4 md:px-8 md:pt-7", dark && "bg-ink text-white border-ink")}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           {back ? (
-            <Link href={back} className={cn("mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.1em]", dark ? "text-offwhite/60" : "text-mute")}>
-              <ChevronLeft className="size-4" /> Voltar
+            <Link href={back} aria-label="Voltar" className={cn("flex size-9 shrink-0 items-center justify-center rounded-[10px] border", dark ? "border-white/20 text-white" : "border-line text-ink")}>
+              <ChevronLeft className="size-[18px]" />
             </Link>
           ) : null}
-          {label ? <div className={cn("section-label", dark && "text-green")}>{label}</div> : null}
-          <h1 className="t-display mt-1 text-[28px] md:text-4xl">{title}</h1>
+          <div className="min-w-0">
+            {label ? <div className={cn("text-[12px] font-medium", dark ? "text-white/60" : "text-mute")}>{label}</div> : null}
+            <h1 className="truncate text-[20px] font-bold tracking-[-0.01em] md:text-2xl">{title}</h1>
+          </div>
         </div>
-        {action ? <div className="shrink-0 pt-1">{action}</div> : null}
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
     </header>
@@ -38,5 +40,5 @@ export function PageHeader({
 }
 
 export function Container({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-4 md:px-8 md:max-w-5xl", className)} {...props} />;
+  return <div className={cn("px-4 md:max-w-5xl md:px-8", className)} {...props} />;
 }

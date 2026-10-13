@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { TaskListItem } from "@/components/app/task-item";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Minhas tarefas" };
+export const metadata = { title: "Compromissos" };
 
 const FILTERS = [
   { key: "open", label: "Pendentes" },
@@ -34,7 +34,7 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
   return (
     <div className="fade-in">
       <PageHeader
-        title="Minhas tarefas"
+        title="Meus compromissos"
         label="Accountability"
         action={
           <Button asChild variant="primary" size="sm">
@@ -52,18 +52,18 @@ export default async function TarefasPage({ searchParams }: PageProps<"/tarefas"
         </div>
         <div className="scroll-x -mx-4 mt-4 flex gap-1 px-4 md:mx-0 md:px-0">
           {FILTERS.map((x) => (
-            <Link key={x.key} href={`/tarefas?f=${x.key}`} className={cn("shrink-0 border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em]", f === x.key ? "border-black bg-black text-offwhite" : "border-line bg-surface text-ink-2")}>
+            <Link key={x.key} href={`/tarefas?f=${x.key}`} className={cn("shrink-0 border px-3 py-2 text-[12px] font-bold", f === x.key ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink-2")}>
               {x.label}
               {x.key === "late" && st.late.length ? <span className="ml-1 text-alert">{st.late.length}</span> : null}
             </Link>
           ))}
         </div>
       </PageHeader>
-      <Container>
+      <Container className="py-4">
         {list.length === 0 ? (
           <EmptyState title={f === "late" ? "Nenhuma tarefa atrasada" : "Nada por aqui"} description={f === "open" ? "Suas tarefas do COMEX aparecem aqui. Crie uma ou aguarde as decisões da próxima reunião." : undefined} icon={<CheckSquare />} />
         ) : (
-          <div className="divide-y divide-line border border-line bg-surface">
+          <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
             {list.map((t) => (
               <TaskListItem key={t.id} task={t} today={today} showOwner={f === "created"} />
             ))}
