@@ -20,7 +20,7 @@ export default async function ApresentarPage({ params }: PageProps<"/apresentar/
     supabase.from("meeting_blocks").select("*").eq("meeting_id", id).order("sort_order"),
     supabase
       .from("agenda_items")
-      .select("id,title,description,category,block_id,allotted_minutes,suggested_minutes,sort_order,requires_decision,expected_outcome,proposed_solution,unit_id,unit:business_units(name,slug),presenter:profiles!agenda_items_presenter_id_fkey(id,short_name),author:profiles!agenda_items_submitted_by_fkey(id,short_name),links")
+      .select("id,title,description,key_question,category,block_id,allotted_minutes,suggested_minutes,sort_order,requires_decision,expected_outcome,proposed_solution,unit_id,unit:business_units(name,slug),presenter:profiles!agenda_items_presenter_id_fkey(id,short_name),author:profiles!agenda_items_submitted_by_fkey(id,short_name),links")
       .eq("meeting_id", id)
       .eq("status", "scheduled")
       .is("deleted_at", null)
@@ -63,6 +63,7 @@ export default async function ApresentarPage({ params }: PageProps<"/apresentar/
         id: i.id,
         title: i.title,
         description: i.description,
+        key_question: i.key_question,
         category: CATEGORY_LABELS[i.category],
         block_id: i.block_id,
         minutes: i.allotted_minutes ?? i.suggested_minutes ?? 10,

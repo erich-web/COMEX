@@ -11,7 +11,7 @@ import { toast } from "@/components/ui/toast";
 import { fmtBRL, fmtBRLShort, fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type Item = { id: string; title: string; description: string; category: string; block_id: string | null; minutes: number; presenter: string; presenter_id: string | null; unit: string | null; unit_id: string | null; requires_decision: boolean; expected_outcome: string | null; proposed_solution: string | null; links: { label?: string; url: string }[] };
+type Item = { id: string; title: string; description: string; key_question: string | null; category: string; block_id: string | null; minutes: number; presenter: string; presenter_id: string | null; unit: string | null; unit_id: string | null; requires_decision: boolean; expected_outcome: string | null; proposed_solution: string | null; links: { label?: string; url: string }[] };
 type Decision = { id: string; title: string; owner: string | null; due_date: string | null };
 type Slide = { kind: "block"; blockId: string } | { kind: "item"; item: Item; blockId: string };
 
@@ -371,10 +371,16 @@ function ItemSlide({ item }: { item: Item }) {
         ) : null}
       </div>
       <h2 className="t-display mt-4 text-4xl lg:text-6xl">{item.title}</h2>
+      {item.key_question ? (
+        <div className="mt-6 border-l-4 border-green pl-5">
+          <div className="t-label text-green">O que precisamos responder</div>
+          <p className="mt-1 text-2xl font-semibold leading-snug lg:text-3xl">{item.key_question}</p>
+        </div>
+      ) : null}
       <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <p className="whitespace-pre-wrap text-xl leading-relaxed text-white/85">{item.description}</p>
+        {item.description ? <p className="whitespace-pre-wrap text-xl leading-relaxed text-white/85">{item.description}</p> : <div />}
         <div className="space-y-4">
-          {item.expected_outcome ? (
+          {item.expected_outcome && !item.key_question ? (
             <div className="border-l-2 border-green pl-4">
               <div className="t-label text-green">Resultado esperado</div>
               <div className="mt-1 text-lg">{item.expected_outcome}</div>
