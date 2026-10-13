@@ -205,3 +205,8 @@ input[type="number"] {
     display: none !important;
   }
 }
+@media print {
+  nav, aside, header a, button { display: none !important; }
+  main { padding: 0 !important; }
+  body { background: #fff; }
+}
