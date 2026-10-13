@@ -37,12 +37,20 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, block, asChild = false, loading, children, disabled, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+    const classes = cn(buttonVariants({ variant, size, block }), className);
+    if (asChild) {
+      // Slot exige exatamente um filho React — nunca adicionamos o spinner aqui.
+      return (
+        <Slot className={classes} ref={ref} {...props}>
+          {children}
+        </Slot>
+      );
+    }
     return (
-      <Comp className={cn(buttonVariants({ variant, size, block }), className)} ref={ref} disabled={disabled || loading} {...props}>
+      <button className={classes} ref={ref} disabled={disabled || loading} {...props}>
         {loading ? <Loader2 className="animate-spin" /> : null}
         {children}
-      </Comp>
+      </button>
     );
   },
 );
