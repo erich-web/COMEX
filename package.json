@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "seed:legacy": "node scripts/legacy-seed.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.4.1",
@@ -45,6 +49,7 @@
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.3.4",
     "vitest": "^5.0.4"
   }
 }
