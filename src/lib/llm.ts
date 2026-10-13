@@ -14,7 +14,12 @@ export async function callModel(system: string, user: string, maxTokens = 2000):
     headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5", max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
   });
-  if (!res.ok) throw new Error(`IA indisponível (${res.status}).`);
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Chave da Anthropic inválida (401). Confira ANTHROPIC_API_KEY na Vercel — deve começar com sk-ant-, sem espaços ou aspas — e faça um redeploy.");
+    if (res.status === 429) throw new Error("Limite de uso da API da Anthropic atingido (429). Tente de novo em instantes ou verifique os créditos da conta.");
+    if (res.status === 404 || res.status === 400) throw new Error(`A API da Anthropic recusou a chamada (${res.status}). Verifique ANTHROPIC_MODEL ou deixe-a em branco.`);
+    throw new Error(`IA indisponível (${res.status}).`);
+  }
   const data = (await res.json()) as { content: { type: string; text?: string }[] };
   return data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("\n");
 }
