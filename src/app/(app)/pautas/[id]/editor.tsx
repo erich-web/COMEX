@@ -63,7 +63,7 @@ export function AgendaItemEditor({ item, units }: { item: Item; units: { id: str
         <FieldError>{errors.key_question?.[0]}</FieldError>
       </div>
       <div>
-        <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Duração</div>
+        <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Duração <span className="font-normal text-mute">(min)</span></div>
         <div className="flex gap-2">
           {DURATION_OPTIONS.map((m) => (
             <button key={m} type="button" aria-pressed={form.suggested_minutes === m} onClick={() => set("suggested_minutes", m)} className={cn("h-10 flex-1 rounded-[10px] border text-[14px] font-semibold", form.suggested_minutes === m ? "border-primary bg-primary text-white" : "border-line-2 bg-surface text-ink-2")}>

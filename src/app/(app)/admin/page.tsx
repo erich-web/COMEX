@@ -112,6 +112,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
 
         {meeting ? (
           <OrganizeBoard
+            key={boardItems.map((i) => `${i.id}:${i.status}:${i.block_id}:${i.allotted_minutes}`).join("|")}
             meeting={{ id: meeting.id, series_date: meeting.series_date, status: meeting.status, startClock: fmtTime(meeting.scheduled_at), duration: meeting.duration_minutes }}
             blocks={(blocks ?? []).map((b) => ({ id: b.id, title: b.title, kind: b.kind, duration_minutes: b.duration_minutes, sort_order: b.sort_order }))}
             items={boardItems}

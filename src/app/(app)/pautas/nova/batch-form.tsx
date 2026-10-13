@@ -206,7 +206,7 @@ export function AgendaBatchForm({
             {result.count} {result.count === 1 ? "pauta registrada" : "pautas registradas"}
           </h2>
           <p className="mt-2 text-sm text-ink-2">
-            {result.duplicate ? "Este envio já havia sido registrado — nada foi duplicado." : `Encaminhadas para a organização ${meetingLabel ? `do ${meetingLabel}` : "do próximo COMEX"}.`}
+            {result.duplicate ? "Este envio já havia sido registrado — nada foi duplicado." : `Encaminhadas para a organização ${meetingLabel ? `do ${meetingLabel.replace(/\.$/, "")}` : "do próximo COMEX"}.`}
             {result.is_late ? " Entraram fora do prazo recomendado e serão tratadas como extraordinárias." : ""}
           </p>
         </div>
@@ -327,7 +327,7 @@ function ItemCard({ idx, item, errors, companies, onChange, onRemove }: { idx: n
       </div>
 
       <div>
-        <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Duração</div>
+        <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Duração <span className="font-normal text-mute">(min)</span></div>
         <div className="flex gap-2">
           {DURATION_OPTIONS.map((m) => (
             <button
@@ -337,7 +337,7 @@ function ItemCard({ idx, item, errors, companies, onChange, onRemove }: { idx: n
               onClick={() => onChange({ suggested_minutes: m })}
               className={cn("h-10 flex-1 rounded-[10px] border text-[14px] font-semibold transition-colors", item.suggested_minutes === m ? "border-primary bg-primary text-white" : "border-line-2 bg-surface text-ink-2 hover:border-mute")}
             >
-              {m === 30 ? "30+" : m} <span className="font-normal">min</span>
+              {m === 30 ? "30+" : m}
             </button>
           ))}
         </div>
