@@ -12,6 +12,7 @@ import { Chip, FieldError, Hint, Input, Label, Textarea } from "@/components/ui/
 import { toast } from "@/components/ui/toast";
 import { CATEGORY_LABELS, DURATION_OPTIONS, THEME_OPTIONS } from "@/lib/constants";
 import { suggestCategory } from "@/lib/classify";
+import { ACCOUNTABILITY_FIELDS, composeAccountability } from "@/lib/guide";
 import { cn } from "@/lib/utils";
 
 type Draft = {
@@ -25,6 +26,7 @@ type Draft = {
   suggested_minutes: number | null;
   links: { label?: string; url: string }[];
   attachments: { name: string; path: string }[];
+  account: Record<string, string>;
 };
 type Errors = Record<number, Record<string, string[]>>;
 type Unit = { id: string; name: string; slug: string };
@@ -42,6 +44,7 @@ const newItem = (unitId: string | null): Draft => ({
   suggested_minutes: 10,
   links: [],
   attachments: [],
+  account: {},
 });
 
 const DRAFT_KEY = (uid: string) => `comex:pautas:draft:v2:${uid}`;
@@ -85,7 +88,7 @@ export function AgendaBatchForm({
         const d = JSON.parse(raw) as { items: Draft[]; batchId: string };
         if (d.items?.length) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setItems(d.items.map((i, k) => ({ ...i, attachments: i.attachments ?? [], _open: k === d.items.length - 1 })));
+          setItems(d.items.map((i, k) => ({ ...i, attachments: i.attachments ?? [], account: i.account ?? {}, _open: k === d.items.length - 1 })));
           setBatchId(d.batchId || crypto.randomUUID());
           hydrated.current = true;
           return;
@@ -139,7 +142,7 @@ export function AgendaBatchForm({
     setErrors({});
   };
 
-  const filled = useMemo(() => items.filter((i) => i.title.trim() || i.key_question.trim() || i.attachments.length), [items]);
+  const filled = useMemo(() => items.filter((i) => i.title.trim() || i.key_question.trim() || i.attachments.length || Object.values(i.account).some((v) => v?.trim())), [items]);
   const count = filled.length;
   const totalMinutes = filled.reduce((a, i) => a + (i.suggested_minutes ?? 0), 0);
 
@@ -148,7 +151,10 @@ export function AgendaBatchForm({
     list.forEach((it, i) => {
       const fe: Record<string, string[]> = {};
       if (it.title.trim().length < 3) fe.title = ["Dê um título com pelo menos 3 caracteres."];
-      if (it.key_question.trim().length < 8) fe.key_question = ["Escreva a pergunta que o COMEX precisa responder."];
+      if (it.category === "accountability") {
+        if (!(it.account.sales ?? "").trim()) fe.sales = ["Informe as vendas da semana."];
+        if (!(it.account.problems ?? "").trim()) fe.problems = ["Liste os problemas (até 3)."];
+      } else if (it.key_question.trim().length < 8) fe.key_question = ["Escreva a pergunta que o COMEX precisa responder."];
       if (Object.keys(fe).length) e[i] = fe;
     });
     return e;
@@ -162,7 +168,7 @@ export function AgendaBatchForm({
       setGlobalError("Você está sem conexão. Suas pautas ficam salvas neste aparelho — tente enviar quando a internet voltar.");
       return;
     }
-    const toSend = items.length > 1 ? items.filter((i) => i.title.trim() || i.key_question.trim() || i.attachments.length) : items;
+    const toSend = items.length > 1 ? items.filter((i) => i.title.trim() || i.key_question.trim() || i.attachments.length || Object.values(i.account).some((v) => v?.trim())) : items;
     if (toSend.length !== items.length) setItems(toSend);
     const local = localValidate(toSend);
     if (Object.keys(local).length) {
@@ -174,9 +180,12 @@ export function AgendaBatchForm({
       return;
     }
     startTransition(async () => {
-      const payload = toSend.map(({ _key, _open, ...rest }) => ({
+      const payload = toSend.map(({ _key, _open, account, ...rest }) => ({
         ...rest,
-        description: rest.description || "",
+        key_question: rest.category === "accountability" ? "Prestação de contas semanal — vendas, desempenhos, problemas e soluções. O que precisamos do COMEX está no último bloco." : rest.key_question,
+        description: rest.category === "accountability" ? composeAccountability(account) + (rest.description ? `\n\nCONTEXTO\n${rest.description}` : "") : rest.description || "",
+        problem: rest.category === "accountability" ? account.problems || null : null,
+        proposed_solution: rest.category === "accountability" ? account.solutions || null : null,
         links: rest.links.filter((l) => l.url.trim()),
         suggested_minutes: rest.suggested_minutes || null,
         urgency: "medium",
@@ -298,7 +307,8 @@ function ItemCard({ idx, item, errors, companies, userId, batchId, onChange, onR
     }
   }
   const hasError = !!errors && Object.keys(errors).length > 0;
-  const missing = !item.title.trim() ? "Falta o título" : item.key_question.trim().length < 8 ? "Falta a pergunta-chave" : null;
+  const isAccount = item.category === "accountability";
+  const missing = !item.title.trim() ? "Falta o título" : isAccount ? (!(item.account.sales ?? "").trim() ? "Faltam as vendas" : !(item.account.problems ?? "").trim() ? "Faltam os problemas" : null) : item.key_question.trim().length < 8 ? "Falta a pergunta-chave" : null;
   const suggestion = useMemo(() => suggestCategory(item.title, item.key_question), [item.title, item.key_question]);
   const companyName = companies.find((c) => c.id === item.unit_id)?.name ?? "Grupo";
 
@@ -338,13 +348,27 @@ function ItemCard({ idx, item, errors, companies, userId, batchId, onChange, onR
         <FieldError>{errors?.title?.[0]}</FieldError>
       </div>
 
-      <div>
-        <Label htmlFor={`q-${idx}`}>
-          Pergunta-chave <span className="font-normal text-mute">— o que o COMEX precisa responder?</span>
-        </Label>
-        <Textarea id={`q-${idx}`} value={item.key_question} onChange={(e) => onChange({ key_question: e.target.value })} placeholder="Ex.: Aprovamos um piloto de 90 dias começando pela Amauri?" aria-invalid={!!errors?.key_question} rows={2} className="min-h-[64px]" maxLength={600} />
-        <FieldError>{errors?.key_question?.[0]}</FieldError>
-      </div>
+      {isAccount ? (
+        <div className="space-y-3 rounded-[12px] border border-primary/30 bg-primary-soft/40 p-3">
+          <p className="text-[12px] text-ink-2">Prestação de contas semanal da unidade — sempre nos mesmos quatro blocos, para comparar semana a semana.</p>
+          {ACCOUNTABILITY_FIELDS.map((f) => (
+            <div key={f.key}>
+              <Label htmlFor={`a-${f.key}-${idx}`}>{f.label}</Label>
+              <Textarea id={`a-${f.key}-${idx}`} value={item.account[f.key] ?? ""} onChange={(e) => onChange({ account: { ...item.account, [f.key]: e.target.value } })} placeholder={f.placeholder} rows={3} className="min-h-[72px] text-[14px]" aria-invalid={!!errors?.[f.key]} />
+              <FieldError>{errors?.[f.key]?.[0]}</FieldError>
+              {!errors?.[f.key] ? <p className="mt-1 text-[11px] text-mute">{f.hint}</p> : null}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div>
+          <Label htmlFor={`q-${idx}`}>
+            Pergunta-chave <span className="font-normal text-mute">— o que o COMEX precisa responder?</span>
+          </Label>
+          <Textarea id={`q-${idx}`} value={item.key_question} onChange={(e) => onChange({ key_question: e.target.value })} placeholder="Ex.: Aprovamos um piloto de 90 dias começando pela Amauri?" aria-invalid={!!errors?.key_question} rows={2} className="min-h-[64px]" maxLength={600} />
+          <FieldError>{errors?.key_question?.[0]}</FieldError>
+        </div>
+      )}
 
       <div>
         <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Duração <span className="font-normal text-mute">(min)</span></div>
@@ -367,7 +391,16 @@ function ItemCard({ idx, item, errors, companies, userId, batchId, onChange, onR
         <div className="mb-1.5 text-[13px] font-semibold text-ink-2">Temática</div>
         <div className="flex flex-wrap gap-2">
           {THEME_OPTIONS.map((c) => (
-            <Chip key={c} active={item.category === c} onClick={() => onChange({ category: c })}>
+            <Chip
+              key={c}
+              active={item.category === c}
+              onClick={() =>
+                onChange({
+                  category: c,
+                  ...(c === "accountability" ? { suggested_minutes: 10, title: item.title.trim() ? item.title : `Prestação de contas — ${companyName}` } : {}),
+                })
+              }
+            >
               {CATEGORY_LABELS[c]}
             </Chip>
           ))}

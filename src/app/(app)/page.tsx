@@ -3,7 +3,7 @@ import { ChevronRight, Plus, Zap } from "lucide-react";
 import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getMyTasks, getNextMeeting, getWeeklyPrompt, getLastClosedMeeting, getUnits, taskStats } from "@/lib/queries";
-import { greeting, todaySP, daysBetween } from "@/lib/dates";
+import { greeting, todaySP, daysBetween, addDays } from "@/lib/dates";
 import { fmtDate, fmtTime, initials, plural } from "@/lib/format";
 import { PromptCard } from "@/components/app/goal-banner";
 import { INSIGHT_KIND_LABELS } from "@/lib/constants";
@@ -21,7 +21,7 @@ export default async function HomePage() {
     getMyTasks(s.profile.id),
     getLastClosedMeeting(),
     getUnits(),
-    supabase.from("agenda_items").select("id,title,status,allotted_minutes,suggested_minutes,meeting_id").eq("submitted_by", s.profile.id).is("deleted_at", null).in("status", ["received", "in_review", "returned", "approved", "scheduled"]).order("created_at", { ascending: false }).limit(50),
+    supabase.from("agenda_items").select("id,title,status,category,created_at,allotted_minutes,suggested_minutes,meeting_id").eq("submitted_by", s.profile.id).is("deleted_at", null).in("status", ["received", "in_review", "returned", "approved", "scheduled"]).order("created_at", { ascending: false }).limit(50),
     supabase.from("agent_insights").select("id,kind,title,body,suggestion").eq("status", "open").order("score", { ascending: false }).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("notifications").select("id", { count: "exact", head: true }).eq("profile_id", s.profile.id).is("read_at", null),
   ]);
@@ -37,6 +37,11 @@ export default async function HomePage() {
   const daysToMeeting = meeting ? daysBetween(today, meeting.series_date) : null;
   const firstName = (s.profile.short_name || s.profile.full_name || "").split(" ")[0];
   const minutes = onAgenda.reduce((a, i) => a + (i.allotted_minutes ?? i.suggested_minutes ?? 0), 0);
+  // prestação de contas desta semana (responsáveis por unidade): enviada desde a última reunião encerrada / últimos 7 dias
+  const weekAgo = addDays(today, -7);
+  const sinceAcc = lastMeeting?.series_date && lastMeeting.series_date > weekAgo ? lastMeeting.series_date : weekAgo;
+  const leadsUnit = s.units.some((u) => u.unit.slug !== "grupo-holding");
+  const accountabilitySent = items.some((i) => i.category === "accountability" && i.created_at.slice(0, 10) >= sinceAcc);
 
   return (
     <div className="fade-in">
@@ -86,6 +91,11 @@ export default async function HomePage() {
                     ? `${plural(returned.length, "pauta devolvida", "pautas devolvidas")} para ajuste`
                     : "Você ainda não enviou pautas"}
             </Row>
+            {leadsUnit ? (
+              <Row href="/pautas/nova" dot={accountabilitySent ? "green" : "amber"}>
+                {accountabilitySent ? "Prestação de contas da unidade enviada" : "Prestação de contas da unidade ainda não enviada"}
+              </Row>
+            ) : null}
             <Row href="/tarefas" dot={st.late.length ? "alert" : dueBefore.length ? "amber" : "green"}>
               {st.late.length
                 ? `${plural(st.late.length, "compromisso seu está atrasado", "compromissos seus estão atrasados")}`
@@ -105,6 +115,9 @@ export default async function HomePage() {
                 Última ata · {fmtDate(lastMeeting.series_date, { day: "2-digit", month: "short" })}
               </Row>
             ) : null}
+            <Row href="/como-funciona" dot="mute">
+              Como funciona o COMEX
+            </Row>
           </div>
         </section>
 
