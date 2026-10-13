@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   } else if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "magiclink" | "email" });
+    // token_hash funciona em qualquer aparelho (não depende do navegador que pediu o link) — usado pelo template de e-mail
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "magiclink" | "email" | "invite" | "recovery" | "signup" });
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
   return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Link inválido ou expirado. Peça um novo link.")}`);
