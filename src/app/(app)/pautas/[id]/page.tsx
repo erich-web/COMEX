@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getUnits } from "@/lib/queries";
@@ -16,7 +17,7 @@ export default async function PautaDetailPage({ params }: PageProps<"/pautas/[id
   const [{ data: item }, { data: comments }, units] = await Promise.all([
     supabase
       .from("agenda_items")
-      .select("*, unit:business_units(name,slug), meeting:meetings(id,series_date,scheduled_at,status), block:meeting_blocks(title), presenter:profiles!agenda_items_presenter_id_fkey(short_name,full_name), author:profiles!agenda_items_submitted_by_fkey(short_name,full_name)")
+      .select("*, attachments:agenda_attachments(id,name), unit:business_units(name,slug), meeting:meetings(id,series_date,scheduled_at,status), block:meeting_blocks(title), presenter:profiles!agenda_items_presenter_id_fkey(short_name,full_name), author:profiles!agenda_items_submitted_by_fkey(short_name,full_name)")
       .eq("id", id)
       .maybeSingle(),
     supabase.from("agenda_comments").select("id,body,created_at,author:profiles(short_name,full_name)").eq("item_id", id).order("created_at"),
@@ -90,6 +91,21 @@ export default async function PautaDetailPage({ params }: PageProps<"/pautas/[id
             </div>
           </Card>
         )}
+
+        {(item.attachments ?? []).length ? (
+          <Card>
+            <div className="mb-2 text-[12px] font-semibold text-mute">Anexos</div>
+            <ul className="space-y-1.5">
+              {item.attachments.map((a) => (
+                <li key={a.id}>
+                  <a href={`/anexos/${a.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-primary underline">
+                    <FileText className="size-4" /> {a.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
 
         <AgendaComments itemId={item.id} comments={(comments ?? []).map((c) => ({ id: c.id, body: c.body, created_at: c.created_at, author: c.author?.short_name ?? c.author?.full_name ?? "" }))} />
       </div>

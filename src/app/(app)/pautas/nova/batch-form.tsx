@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, CheckCircle2, AlertCircle, WifiOff, ChevronDown, ChevronUp, Send, Check } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, AlertCircle, WifiOff, ChevronDown, ChevronUp, Send, Check, Paperclip, FileText, X, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { submitAgendaBatch, type BatchResult } from "@/actions/agenda";
 import type { AgendaItemInput } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
-import { Chip, FieldError, Input, Label, Textarea } from "@/components/ui/primitives";
+import { Chip, FieldError, Hint, Input, Label, Textarea } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/toast";
 import { CATEGORY_LABELS, DURATION_OPTIONS, THEME_OPTIONS } from "@/lib/constants";
 import { suggestCategory } from "@/lib/classify";
@@ -23,6 +24,7 @@ type Draft = {
   category: AgendaItemInput["category"];
   suggested_minutes: number | null;
   links: { label?: string; url: string }[];
+  attachments: { name: string; path: string }[];
 };
 type Errors = Record<number, Record<string, string[]>>;
 type Unit = { id: string; name: string; slug: string };
@@ -39,6 +41,7 @@ const newItem = (unitId: string | null): Draft => ({
   category: "marketing_sales",
   suggested_minutes: 10,
   links: [],
+  attachments: [],
 });
 
 const DRAFT_KEY = (uid: string) => `comex:pautas:draft:v2:${uid}`;
@@ -82,7 +85,7 @@ export function AgendaBatchForm({
         const d = JSON.parse(raw) as { items: Draft[]; batchId: string };
         if (d.items?.length) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setItems(d.items.map((i, k) => ({ ...i, _open: k === d.items.length - 1 })));
+          setItems(d.items.map((i, k) => ({ ...i, attachments: i.attachments ?? [], _open: k === d.items.length - 1 })));
           setBatchId(d.batchId || crypto.randomUUID());
           hydrated.current = true;
           return;
@@ -136,7 +139,7 @@ export function AgendaBatchForm({
     setErrors({});
   };
 
-  const filled = useMemo(() => items.filter((i) => i.title.trim() || i.key_question.trim()), [items]);
+  const filled = useMemo(() => items.filter((i) => i.title.trim() || i.key_question.trim() || i.attachments.length), [items]);
   const count = filled.length;
   const totalMinutes = filled.reduce((a, i) => a + (i.suggested_minutes ?? 0), 0);
 
@@ -159,7 +162,7 @@ export function AgendaBatchForm({
       setGlobalError("Você está sem conexão. Suas pautas ficam salvas neste aparelho — tente enviar quando a internet voltar.");
       return;
     }
-    const toSend = items.length > 1 ? items.filter((i) => i.title.trim() || i.key_question.trim()) : items;
+    const toSend = items.length > 1 ? items.filter((i) => i.title.trim() || i.key_question.trim() || i.attachments.length) : items;
     if (toSend.length !== items.length) setItems(toSend);
     const local = localValidate(toSend);
     if (Object.keys(local).length) {
@@ -243,7 +246,7 @@ export function AgendaBatchForm({
         ) : null}
 
         {items.map((it, i) => (
-          <ItemCard key={it._key} idx={i} item={it} errors={errors[i]} companies={companies} onChange={(p) => update(i, p)} onRemove={() => remove(i)} />
+          <ItemCard key={it._key} idx={i} item={it} errors={errors[i]} companies={companies} userId={userId} batchId={batchId} onChange={(p) => update(i, p)} onRemove={() => remove(i)} />
         ))}
 
         <button type="button" onClick={add} className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-mute/70 text-[15px] font-semibold text-ink-2 hover:border-primary hover:text-primary">
@@ -275,8 +278,25 @@ export function AgendaBatchForm({
 
 /* ------------------------------------------------------------------ */
 
-function ItemCard({ idx, item, errors, companies, onChange, onRemove }: { idx: number; item: Draft; errors?: Record<string, string[]>; companies: Unit[]; onChange: (p: Partial<Draft>) => void; onRemove: () => void }) {
-  const [more, setMore] = useState(false);
+function ItemCard({ idx, item, errors, companies, userId, batchId, onChange, onRemove }: { idx: number; item: Draft; errors?: Record<string, string[]>; companies: Unit[]; userId: string; batchId: string; onChange: (p: Partial<Draft>) => void; onRemove: () => void }) {
+  const [more, setMore] = useState(item.attachments.length > 0);
+  const [uploading, setUploading] = useState(false);
+
+  async function upload(file: File) {
+    if (file.size > 20 * 1024 * 1024) return toast.error("Arquivo acima de 20 MB.");
+    if (item.attachments.length >= 5) return toast.error("Máximo de 5 anexos por pauta.");
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const key = `${userId}/agenda/${batchId}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
+      const { error } = await supabase.storage.from("comex").upload(key, file, { upsert: false, contentType: file.type || undefined });
+      if (error) return toast.error("Falha ao anexar", error.message);
+      onChange({ attachments: [...item.attachments, { name: file.name, path: key }] });
+      if (!item.title.trim()) onChange({ title: file.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 200) });
+    } finally {
+      setUploading(false);
+    }
+  }
   const hasError = !!errors && Object.keys(errors).length > 0;
   const missing = !item.title.trim() ? "Falta o título" : item.key_question.trim().length < 8 ? "Falta a pergunta-chave" : null;
   const suggestion = useMemo(() => suggestCategory(item.title, item.key_question), [item.title, item.key_question]);
@@ -289,7 +309,7 @@ function ItemCard({ idx, item, errors, companies, onChange, onRemove }: { idx: n
         <span className={cn("flex size-[26px] shrink-0 items-center justify-center rounded-full text-[12px] font-bold", ok ? "bg-green-soft text-green-dark" : "bg-amber-soft text-amber")}>{ok ? <Check className="size-3.5" strokeWidth={3} /> : "!"}</span>
         <button type="button" onClick={() => onChange({ _open: true })} className="min-w-0 flex-1 text-left">
           <span className="block truncate text-[15px] font-semibold">{item.title || <span className="text-mute">Pauta {idx + 1}</span>}</span>
-          <span className={cn("block truncate text-[12px]", ok ? "text-mute" : "text-amber")}>{missing ?? (hasError ? "Precisa de ajuste" : `${item.suggested_minutes ?? "—"} min · ${CATEGORY_LABELS[item.category ?? "other"]} · ${companyName}`)}</span>
+          <span className={cn("block truncate text-[12px]", ok ? "text-mute" : "text-amber")}>{missing ?? (hasError ? "Precisa de ajuste" : `${item.suggested_minutes ?? "—"} min · ${CATEGORY_LABELS[item.category ?? "other"]} · ${companyName}${item.attachments.length ? ` · ${item.attachments.length} anexo${item.attachments.length > 1 ? "s" : ""}` : ""}`)}</span>
         </button>
         <button type="button" onClick={() => onChange({ _open: true })} className="shrink-0 px-1.5 py-1 text-[13px] font-semibold text-mute hover:text-ink">
           Editar
@@ -371,10 +391,28 @@ function ItemCard({ idx, item, errors, companies, onChange, onRemove }: { idx: n
       </div>
 
       <button type="button" onClick={() => setMore((m) => !m)} className="flex items-center gap-1.5 text-[13px] font-semibold text-mute hover:text-ink">
-        {more ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />} Contexto, material ou link (opcional)
+        {more ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />} Contexto, PDF, material ou link (opcional)
       </button>
       {more ? (
         <div className="space-y-3 fade-in">
+          <div>
+            <Label>Anexar PDF ou imagem</Label>
+            {item.attachments.map((a, ai) => (
+              <div key={a.path} className="mb-2 flex items-center gap-2 rounded-[10px] border border-line bg-bg px-3 py-2 text-[13px]">
+                <FileText className="size-4 shrink-0 text-primary" />
+                <span className="min-w-0 flex-1 truncate">{a.name}</span>
+                <button type="button" aria-label="Remover anexo" onClick={() => onChange({ attachments: item.attachments.filter((_, k) => k !== ai) })} className="p-1 text-mute hover:text-alert">
+                  <X className="size-4" />
+                </button>
+              </div>
+            ))}
+            <label className={cn("flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-dashed border-line-2 text-[13px] font-semibold text-ink-2 hover:border-primary hover:text-primary", uploading && "pointer-events-none opacity-60")}>
+              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
+              {uploading ? "Enviando…" : "Escolher arquivo (PDF, imagem, Word)"}
+              <input type="file" className="sr-only" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }} />
+            </label>
+            <Hint>Quem recebe a pauta em PDF pode anexar o arquivo aqui — ele aparece na organização e no modo reunião.</Hint>
+          </div>
           <div>
             <Label htmlFor={`d-${idx}`}>Contexto</Label>
             <Textarea id={`d-${idx}`} value={item.description} onChange={(e) => onChange({ description: e.target.value })} rows={3} placeholder="O que está acontecendo, números, o que já foi tentado…" />

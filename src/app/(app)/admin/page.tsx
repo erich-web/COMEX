@@ -30,7 +30,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
     meeting ? supabase.from("meeting_blocks").select("*").eq("meeting_id", meeting.id).order("sort_order") : Promise.resolve({ data: [] }),
     supabase
       .from("agenda_items")
-      .select("*, unit:business_units(name,slug), author:profiles!agenda_items_submitted_by_fkey(id,short_name,full_name), presenter:profiles!agenda_items_presenter_id_fkey(id,short_name), comments:agenda_comments(id)")
+      .select("*, attachments:agenda_attachments(id,name), unit:business_units(name,slug), author:profiles!agenda_items_submitted_by_fkey(id,short_name,full_name), presenter:profiles!agenda_items_presenter_id_fkey(id,short_name), comments:agenda_comments(id)")
       .is("deleted_at", null)
       .or(`status.in.(received,in_review,returned,approved,postponed),meeting_id.eq.${meeting?.id ?? "00000000-0000-0000-0000-000000000000"}`)
       .order("priority", { ascending: false })
@@ -70,6 +70,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
       proposed_solution: i.proposed_solution,
       created_at: i.created_at,
       comments: i.comments?.length ?? 0,
+      attachments: (i.attachments ?? []).map((a) => ({ id: a.id, name: a.name })),
       duplicates: [...dupPending.slice(0, 2), ...dupPast.slice(0, 2)],
     };
   });

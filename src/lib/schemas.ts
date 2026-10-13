@@ -17,6 +17,7 @@ export const agendaItemSchema = z.object({
   links: z.array(z.object({ label: z.string().trim().max(120).optional().default(""), url: z.string().trim().url("Link inválido") })).max(10).default([]),
   strategic_goal_id: optionalUuid,
   requires_decision: z.boolean().default(false),
+  attachments: z.array(z.object({ name: z.string().trim().min(1).max(200), path: z.string().trim().min(1).max(500) })).max(5).default([]),
 });
 
 export type AgendaItemInput = z.input<typeof agendaItemSchema>;

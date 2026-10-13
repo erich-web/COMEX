@@ -11,7 +11,7 @@ import { toast } from "@/components/ui/toast";
 import { fmtBRL, fmtBRLShort, fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type Item = { id: string; title: string; description: string; key_question: string | null; category: string; block_id: string | null; minutes: number; presenter: string; presenter_id: string | null; unit: string | null; unit_id: string | null; requires_decision: boolean; expected_outcome: string | null; proposed_solution: string | null; links: { label?: string; url: string }[] };
+type Item = { id: string; title: string; description: string; key_question: string | null; attachments: { id: string; name: string }[]; category: string; block_id: string | null; minutes: number; presenter: string; presenter_id: string | null; unit: string | null; unit_id: string | null; requires_decision: boolean; expected_outcome: string | null; proposed_solution: string | null; links: { label?: string; url: string }[] };
 type Decision = { id: string; title: string; owner: string | null; due_date: string | null };
 type Slide = { kind: "block"; blockId: string } | { kind: "item"; item: Item; blockId: string };
 
@@ -392,10 +392,17 @@ function ItemSlide({ item }: { item: Item }) {
               <div className="mt-1 text-lg">{item.proposed_solution}</div>
             </div>
           ) : null}
-          {item.links.length ? (
+          {item.links.length || item.attachments.length ? (
             <div>
               <div className="t-label text-white/40">Materiais</div>
               <ul className="mt-1 space-y-1">
+                {item.attachments.map((a) => (
+                  <li key={a.id}>
+                    <a href={`/anexos/${a.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-green underline">
+                      {a.name}
+                    </a>
+                  </li>
+                ))}
                 {item.links.map((l, i) => (
                   <li key={i}>
                     <a href={l.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-green underline">

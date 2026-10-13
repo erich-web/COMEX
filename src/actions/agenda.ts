@@ -38,10 +38,21 @@ export async function submitAgendaBatch(input: unknown): Promise<ActionResult<Ba
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("submit_agenda_batch", {
     p_batch_id: parsed.data.batchId,
-    p_items: parsed.data.items.map((i) => ({ ...i, suggested_minutes: i.suggested_minutes ?? null })),
+    p_items: parsed.data.items.map(({ attachments: _a, ...i }) => ({ ...i, suggested_minutes: i.suggested_minutes ?? null })),
     p_reflection: parsed.data.reflection ?? undefined,
   });
   if (error) return fail(msg(error));
+  // anexos (PDFs enviados pelo navegador para o Storage antes do envio) — só o próprio usuário pode gravar
+  const result = data as unknown as BatchResult & { item_ids?: string[] };
+  if (!result.duplicate && result.item_ids?.length) {
+    const s = await requireMember();
+    const rows = parsed.data.items.flatMap((it, idx) =>
+      (it.attachments ?? [])
+        .filter((a) => a.path.startsWith(`${s.profile.id}/`))
+        .map((a) => ({ item_id: result.item_ids![idx], name: a.name, storage_path: a.path, uploaded_by: s.profile.id })),
+    );
+    if (rows.length) await supabase.from("agenda_attachments").insert(rows);
+  }
   revalidatePath("/pautas");
   revalidatePath("/");
   revalidatePath("/admin/pautas");
@@ -54,9 +65,10 @@ export async function updateMyAgendaItem(id: string, input: unknown): Promise<Ac
   const parsed = agendaItemSchema.safeParse(input);
   if (!parsed.success) return fromZod(parsed.error);
   const supabase = await createClient();
+  const { attachments: _a, ...patch } = parsed.data;
   const { error } = await supabase
     .from("agenda_items")
-    .update({ ...parsed.data, suggested_minutes: parsed.data.suggested_minutes ?? null, status: "received" })
+    .update({ ...patch, suggested_minutes: patch.suggested_minutes ?? null, status: "received" })
     .eq("id", id)
     .eq("submitted_by", s.profile.id);
   if (error) return fail(msg(error));

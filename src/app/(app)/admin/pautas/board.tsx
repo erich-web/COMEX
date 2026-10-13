@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, ArrowDown, ArrowUp, Gavel, MessageSquare, Sparkles, Send, Copy, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, Gavel, MessageSquare, Sparkles, Send, Copy, X, Paperclip } from "lucide-react";
 import { organizeAgendaItem } from "@/actions/agenda";
 import { suggestAgendaForMeeting } from "@/actions/agent";
 import { setMeetingStatus } from "@/actions/meetings";
@@ -44,6 +44,7 @@ export type BoardItem = {
   proposed_solution: string | null;
   created_at: string;
   comments: number;
+  attachments: { id: string; name: string }[];
   duplicates: string[];
 };
 
@@ -314,6 +315,11 @@ function ItemCard({ item, compact, onOpen, children, ...drag }: { item: BoardIte
                 <MessageSquare className="size-3" /> {item.comments}
               </span>
             ) : null}
+            {item.attachments.length ? (
+              <span className="inline-flex items-center gap-0.5">
+                <Paperclip className="size-3" /> {item.attachments.length}
+              </span>
+            ) : null}
             {item.duplicates.length ? (
               <span className="inline-flex items-center gap-0.5 text-amber" title={item.duplicates.join("\n")}>
                 <Copy className="size-3" /> possível duplicidade
@@ -342,6 +348,20 @@ function ItemSheet({ item, blocks, profiles, onClose, onApply, onBlock }: { item
       <div className="space-y-4">
         {item.key_question ? <Row label="Pergunta-chave" v={item.key_question} /> : null}
         {item.description ? <Row label="Contexto" v={item.description} /> : null}
+        {item.attachments.length ? (
+          <div>
+            <div className="text-[12px] font-semibold text-mute">Anexos</div>
+            <ul className="mt-1 space-y-1">
+              {item.attachments.map((a) => (
+                <li key={a.id}>
+                  <a href={`/anexos/${a.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline">
+                    <Paperclip className="size-3.5" /> {a.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {item.expected_outcome ? <Row label="Resultado esperado" v={item.expected_outcome} /> : null}
         {item.problem ? <Row label="Problema" v={item.problem} /> : null}
         {item.proposed_solution ? <Row label="Solução proposta" v={item.proposed_solution} /> : null}
