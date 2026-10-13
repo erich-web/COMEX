@@ -43,7 +43,9 @@ tests/unit (Vitest) · tests/e2e (Playwright)
 
 ## Deploy (Vercel)
 
-Importe o repositório, defina as variáveis acima em *Environment Variables* e publique. Não defina `E2E_TEST_LOGIN` em produção.
+Projeto `comex` (time `erich-webs-projects`), produção em **https://comex-omega.vercel.app**. As três variáveis `NEXT_PUBLIC_*` já estão configuradas no projeto; cada push em `main` gera um deploy de produção. Não defina `E2E_TEST_LOGIN` em produção.
+
+Para outro ambiente: importe o repositório, defina as variáveis acima em *Environment Variables*, adicione `https://SEU-DOMINIO/auth/callback` nas *Redirect URLs* do Supabase e publique.
 
 ## Acesso e permissões
 
