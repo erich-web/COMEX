@@ -215,6 +215,7 @@ export async function suggestAgendaForMeeting(meetingId: string): Promise<Action
     note: z.string().max(600).optional(),
   });
   let plan: z.infer<typeof schema> | null = null;
+  let llmError = hasLLM() ? "" : "ANTHROPIC_API_KEY não configurada";
   if (hasLLM()) {
     const system = `${SYSTEM_BASE}
 Você organiza a agenda da terça. Receba blocos (com duração) e pautas pendentes. Devolva JSON {"items":[{"id","block_id"|null,"minutes","order","reason"}],"note":"resumo em 2 frases"}.
@@ -224,8 +225,10 @@ Regras: priorize decisões travadas, crescimento/receita e pautas com pergunta-c
       const text = await callModel(system, user, 3000);
       const r = schema.safeParse(extractJSON(text));
       if (r.success) plan = r.data;
-    } catch {
+      else llmError = "a IA respondeu em formato inesperado";
+    } catch (e) {
       plan = null;
+      llmError = e instanceof Error ? e.message : "erro na chamada à IA";
     }
   }
   if (!plan) {
@@ -242,7 +245,7 @@ Regras: priorize decisões travadas, crescimento/receita e pautas com pergunta-c
         if (fits) used.set(block.id, cur + minutes);
         return { id: i.id, block_id: fits ? block.id : null, minutes, order: k + 1, reason: fits ? "bloco por temática" : "adiar" };
       }),
-      note: "Distribuição heurística por temática (IA indisponível).",
+      note: `Distribuição automática por temática, sem IA — ${llmError}.`,
     };
   }
   const blockIds = new Set(blocks.map((b) => b.id));

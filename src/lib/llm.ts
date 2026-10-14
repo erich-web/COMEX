@@ -4,10 +4,22 @@ import "server-only";
  * Chamada mínima à API da Anthropic. Só funciona no servidor e exige ANTHROPIC_API_KEY.
  * Nunca envie a chave ao cliente. Modelo configurável por ANTHROPIC_MODEL.
  */
-export const hasLLM = () => !!process.env.ANTHROPIC_API_KEY;
+/** Lê a chave tolerando espaços e aspas coladas no painel da Vercel. */
+function readKey(): string {
+  return (process.env.ANTHROPIC_API_KEY ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
+}
+
+export const hasLLM = () => readKey().length > 0;
+
+/** Descrição segura da chave carregada (nunca expõe o segredo): prefixo e tamanho. */
+export function describeKey(): string {
+  const k = readKey();
+  if (!k) return "nenhuma chave carregada";
+  return `chave carregada começa com "${k.slice(0, 7)}", ${k.length} caracteres`;
+}
 
 export async function callModel(system: string, user: string, maxTokens = 2000): Promise<string> {
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = readKey();
   if (!key) throw new Error("ANTHROPIC_API_KEY não configurada. Defina a variável no servidor (Vercel → Environment Variables) para habilitar o agente.");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -15,7 +27,11 @@ export async function callModel(system: string, user: string, maxTokens = 2000):
     body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5", max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
   });
   if (!res.ok) {
-    if (res.status === 401) throw new Error("Chave da Anthropic inválida (401). Confira ANTHROPIC_API_KEY na Vercel — deve começar com sk-ant-, sem espaços ou aspas — e faça um redeploy.");
+    if (res.status === 401) {
+      const detail = await res.text().catch(() => "");
+      const reason = /revoked|disabled/i.test(detail) ? "A chave foi revogada ou desativada no console da Anthropic." : "A API da Anthropic não reconheceu a chave.";
+      throw new Error(`Chave da Anthropic inválida (401). ${reason} No servidor, ${describeKey()}. Gere uma chave nova em console.anthropic.com → API Keys, cole em ANTHROPIC_API_KEY na Vercel e faça Redeploy depois de salvar — a Vercel só usa o valor novo num deploy feito após a alteração.`);
+    }
     if (res.status === 429) throw new Error("Limite de uso da API da Anthropic atingido (429). Tente de novo em instantes ou verifique os créditos da conta.");
     if (res.status === 404 || res.status === 400) throw new Error(`A API da Anthropic recusou a chamada (${res.status}). Verifique ANTHROPIC_MODEL ou deixe-a em branco.`);
     throw new Error(`IA indisponível (${res.status}).`);
