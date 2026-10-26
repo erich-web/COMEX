@@ -2,8 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/manifest.webmanifest", "/icon", "/apple-icon"];
+/** Rotas de máquina (cron da Vercel): autenticam por segredo próprio, não por sessão. */
+const MACHINE_PATHS = ["/api/cron"];
 
 export async function proxy(request: NextRequest) {
+  if (MACHINE_PATHS.some((p) => request.nextUrl.pathname.startsWith(p))) return NextResponse.next();
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
