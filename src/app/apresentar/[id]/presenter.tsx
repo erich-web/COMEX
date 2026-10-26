@@ -49,17 +49,22 @@ export function Presenter(props: {
   /** Slides + minuto planejado de início de cada um (para medir o atraso em relação à agenda). */
   const slides = useMemo<{ slide: Slide; plannedStartMin: number; budgetMin: number }[]>(() => {
     const out: { slide: Slide; plannedStartMin: number; budgetMin: number }[] = [];
+    const hasAccountability = schedule.blocks.some((b) => b.kind === "accountability");
     schedule.blocks.forEach((b, bi) => {
       let cursor = b.startMin;
       const blockItems = b.itemIds.map((id) => items.find((i) => i.id === id)).filter((x): x is Item => !!x);
       const itemsMin = blockItems.reduce((a, i) => a + i.minutes, 0);
-      const introMin = Math.max(1, b.duration_minutes - itemsMin);
-      out.push({ slide: { kind: "block", blockId: b.id }, plannedStartMin: cursor, budgetMin: blockItems.length ? introMin : b.duration_minutes });
-      cursor += blockItems.length ? introMin : b.duration_minutes;
-      if (bi === 0 && previous) {
-        // leitura da ata anterior logo depois da abertura — usa o tempo do próprio bloco de abertura/accountability
-        out.push({ slide: { kind: "previous", blockId: b.id }, plannedStartMin: cursor, budgetMin: PREVIOUS_MINUTES_MIN });
+      let introMin = Math.max(1, b.duration_minutes - itemsMin);
+      // leitura da ata anterior abre o bloco de accountability (ou vem logo após a abertura, se não houver esse bloco)
+      const hostsPrevious = !!previous && (b.kind === "accountability" || (!hasAccountability && bi === 0));
+      if (hostsPrevious) {
+        const prevMin = Math.min(PREVIOUS_MINUTES_MIN, Math.max(3, Math.floor(introMin / 2)));
+        out.push({ slide: { kind: "previous", blockId: b.id }, plannedStartMin: cursor, budgetMin: prevMin });
+        cursor += prevMin;
+        introMin = Math.max(1, introMin - prevMin);
       }
+      out.push({ slide: { kind: "block", blockId: b.id }, plannedStartMin: cursor, budgetMin: introMin });
+      cursor += introMin;
       for (const it of blockItems) {
         out.push({ slide: { kind: "item", item: it, blockId: b.id }, plannedStartMin: cursor, budgetMin: it.minutes });
         cursor += it.minutes;
