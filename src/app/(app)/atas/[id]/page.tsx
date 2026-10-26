@@ -133,7 +133,7 @@ export default async function ReuniaoPage({ params }: PageProps<"/atas/[id]">) {
             </div>
             <div className="divide-y divide-surface-2 overflow-hidden rounded-[14px] border border-line bg-surface">
               {[...openTasks, ...doneTasks].map((t) => (
-                <TaskListItem key={t.id} task={t as TaskRow} today={today} showOwner />
+                <TaskListItem key={t.id} task={t as TaskRow} today={today} showOwner quick={t.owner_id === s.profile.id || s.isAdmin} />
               ))}
             </div>
           </section>
