@@ -3,7 +3,10 @@ import Link from "next/link";
 import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getProfiles, getUnits } from "@/lib/queries";
-import { todaySP } from "@/lib/dates";
+import { todaySP, daysBetween } from "@/lib/dates";
+import { CheckCircle2, Ban, AlertTriangle } from "lucide-react";
+import { STATUS_STYLE } from "@/components/app/task-item";
+import type { TaskStatus } from "@/lib/types";
 import { PageHeader, Container } from "@/components/app/page-header";
 import { Badge, Card } from "@/components/ui/primitives";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/constants";
@@ -49,6 +52,31 @@ export default async function TarefaPage({ params }: PageProps<"/tarefas/[id]">)
         action={<Badge variant={task.status === "done" ? "green" : task.status === "blocked" ? "alert" : late ? "alertSoft" : "soft"}>{TASK_STATUS_LABELS[task.status]}</Badge>}
       />
       <Container className="space-y-4 py-4">
+        {task.status === "done" ? (
+          <div className="flex items-start gap-3 rounded-[14px] border border-green/30 bg-green-soft px-4 py-3 text-green-dark">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+            <div className="text-sm">
+              <div className="font-bold">Concluída{task.completed_at ? ` em ${fmtDateTime(task.completed_at)}` : ""}</div>
+              <div className="text-[12px]">{task.due_date && task.completed_at ? (task.completed_at.slice(0, 10) <= task.due_date ? "Entregue dentro do prazo." : `Entregue após o prazo (${fmtDate(task.due_date, { day: "2-digit", month: "short" })}).`) : "Registrada como entregue."}</div>
+            </div>
+          </div>
+        ) : task.status === "blocked" ? (
+          <div className="flex items-start gap-3 rounded-[14px] border border-alert/30 bg-alert-soft px-4 py-3 text-alert">
+            <Ban className="mt-0.5 size-5 shrink-0" />
+            <div className="text-sm">
+              <div className="font-bold">Bloqueada</div>
+              <div className="text-[12px]">Diga nos comentários o que precisa (decisão, verba, apoio) — isso entra na pauta de accountability da terça.</div>
+            </div>
+          </div>
+        ) : late ? (
+          <div className="flex items-start gap-3 rounded-[14px] border border-alert/30 bg-alert-soft px-4 py-3 text-alert">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0" />
+            <div className="text-sm">
+              <div className="font-bold">{daysBetween(task.due_date!, today)} dias de atraso</div>
+              <div className="text-[12px]">Atualize o status ou renegocie o prazo antes da próxima terça.</div>
+            </div>
+          </div>
+        ) : null}
         {canEdit && open ? <TaskActions taskId={task.id} status={task.status} /> : null}
 
         <Card className="space-y-3">
@@ -100,16 +128,26 @@ export default async function TarefaPage({ params }: PageProps<"/tarefas/[id]">)
         <TaskComments taskId={task.id} comments={(comments ?? []).map((c) => ({ id: c.id, body: c.body, created_at: c.created_at, author: c.author?.short_name ?? c.author?.full_name ?? "" }))} />
 
         {activity?.length ? (
-          <details className="border border-line bg-surface">
-            <summary className="cursor-pointer px-4 py-3 text-[11px] font-bold  text-ink-2">Histórico de alterações</summary>
-            <ul className="divide-y divide-line px-4 pb-3 text-xs text-mute">
-              {activity.map((a) => (
-                <li key={a.id} className="py-2">
-                  <span className="text-ink">{a.actor?.short_name ?? "Sistema"}</span> · {describe(a.action, a.from_value, a.to_value)} · {fmtDateTime(a.created_at)}
-                </li>
-              ))}
+          <Card className="p-0">
+            <div className="border-b border-line px-4 py-2.5 text-[12px] font-semibold text-mute">Linha do tempo</div>
+            <ul className="divide-y divide-surface-2">
+              {activity.map((a) => {
+                const to = a.action === "status" || a.action === "created" ? (a.to_value as TaskStatus | null) : null;
+                const dot = to && to in STATUS_STYLE ? STATUS_STYLE[to].dot : "bg-line-2";
+                return (
+                  <li key={a.id} className="flex items-start gap-3 px-4 py-2.5 text-[13px]">
+                    <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${dot}`} />
+                    <div className="min-w-0 flex-1">
+                      <div>
+                        <span className="font-semibold">{a.actor?.short_name ?? "Sistema"}</span> {describe(a.action, a.from_value, a.to_value)}
+                      </div>
+                      <div className="text-[11px] text-mute">{fmtDateTime(a.created_at)}</div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
-          </details>
+          </Card>
         ) : null}
       </Container>
     </div>

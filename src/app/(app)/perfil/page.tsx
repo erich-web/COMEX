@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Container } from "@/components/app/page-header";
 import { Card, EmptyState } from "@/components/ui/primitives";
 import { fmtDateTime } from "@/lib/format";
-import { ProfileForm, MarkAllRead } from "./profile-form";
+import { ProfileForm, MarkAllRead, EmailPreference } from "./profile-form";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Perfil" };
@@ -42,6 +42,7 @@ export default async function PerfilPage() {
           <div className="section-label mb-2">Seus dados</div>
           <ProfileForm profile={{ full_name: s.profile.full_name, short_name: s.profile.short_name ?? "", phone: s.profile.phone ?? "", email: s.profile.email }} />
         </section>
+        <EmailPreference initial={s.profile.notify_email} />
         {s.units.length ? (
           <Card>
             <div className="t-label mb-1">Unidades sob sua responsabilidade</div>

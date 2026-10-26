@@ -68,3 +68,38 @@ export function MarkAllRead() {
     </button>
   );
 }
+
+export function EmailPreference({ initial }: { initial: boolean }) {
+  const router = useRouter();
+  const [on, setOn] = useState(initial);
+  const [pending, start] = useTransition();
+  return (
+    <Card className="flex items-center justify-between gap-3">
+      <div>
+        <div className="text-sm font-semibold">E-mails do COMEX</div>
+        <div className="text-[12px] text-mute">Lembrete de compromissos pendentes a cada poucos dias e resumo na véspera da reunião.</div>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const { setMyEmailPreference } = await import("@/actions/notifications");
+            const next = !on;
+            const r = await setMyEmailPreference(next);
+            if (r.ok) {
+              setOn(next);
+              toast(r.message ?? "Preferência salva");
+              router.refresh();
+            } else toast.error(r.error);
+          })
+        }
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? "bg-primary" : "bg-line-2"}`}
+      >
+        <span className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${on ? "left-[calc(100%-26px)]" : "left-0.5"}`} />
+      </button>
+    </Card>
+  );
+}

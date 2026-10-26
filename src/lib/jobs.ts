@@ -239,6 +239,11 @@ export async function buildDigestContext(supabase: DbClient, next: { id: string;
 
 export async function personalizeDigest(supabase: DbClient, ctx: DigestContext, p: { id: string; email: string; full_name: string; short_name: string | null; role: string }, url: string, today: string): Promise<DigestInput> {
   const myTasks = await openTasksOf(supabase, p.id, today);
-  const { count } = await supabase.from("agenda_items").select("id", { count: "exact", head: true }).eq("submitted_by", p.id).eq("meeting_id", ctx.meeting.id).is("deleted_at", null);
-  return { ...ctx, firstName: firstName(p), isAdmin: p.role === "admin", myTasks, myPautas: count ?? 0, appUrl: url, today };
+  // pautas enviadas para esta reunião: lotes direcionados a ela + pautas já agendadas nela
+  const [{ data: subs }, { count: scheduled }] = await Promise.all([
+    supabase.from("agenda_submissions").select("item_count").eq("submitted_by", p.id).eq("target_meeting_id", ctx.meeting.id),
+    supabase.from("agenda_items").select("id", { count: "exact", head: true }).eq("submitted_by", p.id).eq("meeting_id", ctx.meeting.id).is("deleted_at", null),
+  ]);
+  const myPautas = Math.max((subs ?? []).reduce((a, x) => a + (x.item_count ?? 0), 0), scheduled ?? 0);
+  return { ...ctx, firstName: firstName(p), isAdmin: p.role === "admin", myTasks, myPautas, appUrl: url, today };
 }
