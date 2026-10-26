@@ -5,6 +5,8 @@ import { hasLLM } from "@/lib/llm";
 import { fmtDateTime } from "@/lib/format";
 import { AgentFeed, AskBox, RunButton } from "./agent-ui";
 
+export const maxDuration = 60;
+
 export const metadata = { title: "Agente COMEX" };
 
 export default async function AgentePage({ searchParams }: PageProps<"/agente">) {

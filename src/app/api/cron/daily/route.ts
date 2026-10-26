@@ -8,6 +8,7 @@ import { runDailyJobs } from "@/lib/jobs";
  * Chamadas sem o segredo são recusadas. Em desenvolvimento, aceita sem segredo quando CRON_SECRET não está definido.
  */
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const secret = (process.env.CRON_SECRET ?? "").trim();

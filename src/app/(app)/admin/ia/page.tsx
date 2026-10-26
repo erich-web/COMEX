@@ -10,6 +10,7 @@ import { fmtDateTime } from "@/lib/format";
 import { AiControls, EmailControls, NotificationSettingsForm, MinutesBulkImport } from "./controls";
 
 export const metadata = { title: "IA e e-mails" };
+export const maxDuration = 60;
 
 export default async function IaPage() {
   await requireAdmin();

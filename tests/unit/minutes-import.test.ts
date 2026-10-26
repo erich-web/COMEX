@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { directDownloadUrl, normalizeMinutesText } from "@/lib/minutes-import";
+import { directDownloadUrl, downloadCandidates, normalizeMinutesText } from "@/lib/minutes-import";
 import { preComexDigestEmail, taskReminderEmail } from "@/lib/email-templates";
 
 describe("normalizeMinutesText", () => {
@@ -19,12 +19,13 @@ describe("normalizeMinutesText", () => {
 });
 
 describe("directDownloadUrl", () => {
-  it("converte link do OneDrive para a API de shares", () => {
-    const r = directDownloadUrl("https://1drv.ms/b/c/36e2401e0434cdd9/IQCx?e=tk0tId");
-    expect(r.kind).toBe("onedrive");
-    expect(r.url.startsWith("https://api.onedrive.com/v1.0/shares/u!")).toBe(true);
-    expect(r.url.endsWith("/root/content")).toBe(true);
-    expect(r.url).not.toContain("=");
+  it("OneDrive: tenta o link com download=1 e depois a API de shares", () => {
+    const c = downloadCandidates("https://1drv.ms/b/c/36e2401e0434cdd9/IQCx?e=tk0tId");
+    expect(c).toHaveLength(2);
+    expect(c[0]).toEqual({ url: "https://1drv.ms/b/c/36e2401e0434cdd9/IQCx?e=tk0tId&download=1", kind: "onedrive" });
+    expect(c[1].url.startsWith("https://api.onedrive.com/v1.0/shares/u!")).toBe(true);
+    expect(c[1].url.endsWith("/root/content")).toBe(true);
+    expect(directDownloadUrl("https://1drv.ms/b/c/x/y").url).toBe("https://1drv.ms/b/c/x/y?download=1");
   });
   it("converte link do Google Drive para download direto", () => {
     const r = directDownloadUrl("https://drive.google.com/file/d/1PEMXW_A2Y2Aa3IBsU49nDc_FUZ-yN89S/view");

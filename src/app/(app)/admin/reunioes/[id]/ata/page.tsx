@@ -7,6 +7,7 @@ import { fmtDate } from "@/lib/format";
 import { MinutesEditor, DecisionsPanel } from "./editor";
 
 export const metadata = { title: "Ata e decisões" };
+export const maxDuration = 60;
 
 export default async function AtaPage({ params }: PageProps<"/admin/reunioes/[id]/ata">) {
   const { id } = await params;

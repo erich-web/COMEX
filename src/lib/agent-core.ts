@@ -41,7 +41,7 @@ export async function buildCorpus(supabase: DbClient, opts: { meetings?: number;
     const body = (mm?.summary ? `RESUMO: ${mm.summary}\n` : "") + (mm?.content ?? "");
     if (body.trim()) withText++;
     // as 8 atas mais recentes entram quase inteiras; as demais, só o começo (resumo + abertura)
-    const limit = k < 8 ? 15_000 : 3_000;
+    const limit = k < 6 ? 12_000 : 2_500;
     lines.push(`\n### ${fmtDate(m.series_date, { day: "2-digit", month: "short", year: "numeric" })} — ${mm?.title || m.title} [id:${m.id}]\n${body.slice(0, limit) || "(sem texto de ata registrado)"}`);
   });
   lines.push(`\n## DECISÕES REGISTRADAS (${decisions?.length ?? 0})`);
@@ -65,7 +65,7 @@ export async function buildCorpus(supabase: DbClient, opts: { meetings?: number;
     }
   }
   return {
-    text: lines.join("\n").slice(0, opts.maxChars ?? 300_000),
+    text: lines.join("\n").slice(0, opts.maxChars ?? 160_000),
     meetings: (meetings ?? []).map((m) => ({ id: m.id, series_date: m.series_date })),
     stats: { meetings: meetings?.length ?? 0, withText, decisions: decisions?.length ?? 0, tasks: tasks?.length ?? 0, items: items?.length ?? 0, checkins: checkins?.length ?? 0 },
   };
@@ -91,7 +91,7 @@ export async function generateInsights(supabase: DbClient, generatedBy: string |
   const { data: units } = await supabase.from("business_units").select("id,name").eq("is_active", true);
 
   const system = `${SYSTEM_BASE}
-Produza entre 6 e 9 análises em JSON (array), cada uma com:
+Produza entre 6 e 8 análises em JSON (array), cada uma com:
 {"kind": "recurring_problem" | "pending_decision" | "growth_idea" | "critical_question" | "suggestion",
  "title": frase curta e específica,
  "body": 2-4 frases com os fatos (datas, quantas vezes apareceu, quem é o dono, o que está travado, números citados nas atas),
@@ -101,7 +101,7 @@ Produza entre 6 e 9 análises em JSON (array), cada uma com:
  "score": 0-100 (impacto em receita/urgência)}
 Inclua pelo menos: 2 problemas recorrentes (tema que aparece em 2+ atas sem decisão fechada), 1 decisão em aberto com compromisso atrasado, 2 ideias de crescimento (cruzando unidades, cross-selling, novos negócios, aumento de ticket/ocupação), 1 pergunta crítica (padrão do COMEX: reativo vs. criador, concentração de pautas, temas que ninguém traz). Responda SOMENTE com o JSON.`;
 
-  const { json, raw } = await aiJSON<unknown[]>({ client: supabase, kind: "analysis", actorId: generatedBy, meta: corpus.stats as unknown as Record<string, Json> }, system, corpus.text, 8000);
+  const { json, raw } = await aiJSON<unknown[]>({ client: supabase, kind: "analysis", actorId: generatedBy, meta: corpus.stats as unknown as Record<string, Json> }, system, corpus.text, 5000);
   if (!Array.isArray(json)) throw new Error("O agente não devolveu um formato válido. Tente de novo.");
   const parsed = json.map((r) => insightSchema.safeParse(r)).filter((r) => r.success).map((r) => r.data!);
   if (!parsed.length) throw new Error("Nenhuma análise válida foi gerada.");

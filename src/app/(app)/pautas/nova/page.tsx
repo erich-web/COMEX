@@ -5,6 +5,8 @@ import { AgendaBatchForm } from "./batch-form";
 import { GuideCard } from "./guide-card";
 import { fmtDate } from "@/lib/format";
 
+export const maxDuration = 60;
+
 export const metadata = { title: "Enviar pautas" };
 
 export default async function NovaPautaPage() {

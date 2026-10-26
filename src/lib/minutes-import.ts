@@ -73,34 +73,62 @@ export function normalizeMinutesText(raw: string): string {
   return final.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/** Converte links compartilhados em URL de download direto (sem autenticação). */
-export function directDownloadUrl(url: string): { url: string; kind: "onedrive" | "gdrive" | "other" } {
+/** Candidatos de download direto para um link compartilhado (tentados em ordem). */
+export function downloadCandidates(url: string): { url: string; kind: "onedrive" | "gdrive" | "other" }[] {
   const u = url.trim();
   if (/^https?:\/\/(1drv\.ms|onedrive\.live\.com|[\w-]+\.sharepoint\.com|[\w-]+-my\.sharepoint\.com)\//i.test(u)) {
-    // API de shares do OneDrive: "u!" + base64url do link — funciona para links "qualquer pessoa com o link"
+    // 1) o próprio link com download=1 (funciona nos links "qualquer pessoa com o link", inclusive os novos 1drv.ms/b/c/…)
+    const withDl = u.includes("download=1") ? u : `${u}${u.includes("?") ? "&" : "?"}download=1`;
+    // 2) API de shares do OneDrive clássico: "u!" + base64url do link
     const b64 = Buffer.from(u, "utf-8").toString("base64").replace(/\//g, "_").replace(/\+/g, "-").replace(/=+$/, "");
-    return { url: `https://api.onedrive.com/v1.0/shares/u!${b64}/root/content`, kind: "onedrive" };
+    return [
+      { url: withDl, kind: "onedrive" },
+      { url: `https://api.onedrive.com/v1.0/shares/u!${b64}/root/content`, kind: "onedrive" },
+    ];
   }
   const g = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([\w-]+)/);
-  if (g) return { url: `https://drive.google.com/uc?export=download&id=${g[1]}&confirm=t`, kind: "gdrive" };
-  return { url: u, kind: "other" };
+  if (g) return [{ url: `https://drive.google.com/uc?export=download&id=${g[1]}&confirm=t`, kind: "gdrive" }];
+  return [{ url: u, kind: "other" }];
 }
 
+/** Compat: primeiro candidato. */
+export function directDownloadUrl(url: string) {
+  return downloadCandidates(url)[0];
+}
+
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 COMEX-importer";
+
 export async function fetchFromLink(url: string): Promise<{ bytes: Uint8Array; name: string; mime: string | null }> {
-  const d = directDownloadUrl(url);
-  const res = await fetch(d.url, { redirect: "follow", headers: { "user-agent": "Mozilla/5.0 (COMEX importer)" } });
-  if (!res.ok) {
-    if (d.kind === "onedrive" && (res.status === 401 || res.status === 403 || res.status === 404)) throw new Error(`O OneDrive recusou o download (${res.status}). O link precisa estar compartilhado como "Qualquer pessoa com o link" — ou envie o arquivo pelo botão de upload.`);
-    if (d.kind === "gdrive" && (res.status === 401 || res.status === 403 || res.status === 404)) throw new Error(`O Google Drive recusou o download (${res.status}). Arquivos restritos ao grupo não podem ser baixados pelo app — envie o PDF pelo botão de upload.`);
-    throw new Error(`Falha ao baixar o arquivo (${res.status}).`);
+  const candidates = downloadCandidates(url);
+  let lastError = "";
+  for (const d of candidates) {
+    try {
+      const res = await fetch(d.url, { redirect: "follow", headers: { "user-agent": UA, accept: "application/pdf,application/octet-stream,*/*" } });
+      const mime = res.headers.get("content-type");
+      if (!res.ok) {
+        lastError = `${res.status}`;
+        continue;
+      }
+      if (mime && /text\/html|application\/json/i.test(mime)) {
+        lastError = "o link devolveu uma página em vez do arquivo";
+        continue;
+      }
+      const buf = new Uint8Array(await res.arrayBuffer());
+      if (buf.length < 200) {
+        lastError = "arquivo vazio";
+        continue;
+      }
+      const cd = res.headers.get("content-disposition") ?? "";
+      const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+      const fromUrl = decodeURIComponent(new URL(res.url || d.url).pathname.split("/").pop() ?? "");
+      const name = m ? decodeURIComponent(m[1]) : /\.(pdf|docx?|txt)$/i.test(fromUrl) ? fromUrl : (mime ?? "").includes("pdf") ? "ata.pdf" : "ata";
+      return { bytes: buf, name, mime };
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : "falha de rede";
+    }
   }
-  const mime = res.headers.get("content-type");
-  const buf = new Uint8Array(await res.arrayBuffer());
-  if (mime && /text\/html/i.test(mime)) {
-    throw new Error(d.kind === "gdrive" ? "O Google Drive devolveu uma página de login em vez do arquivo — o PDF é restrito. Envie o arquivo pelo botão de upload." : "O link devolveu uma página em vez do arquivo. Verifique o compartilhamento ou envie o arquivo pelo upload.");
-  }
-  const cd = res.headers.get("content-disposition") ?? "";
-  const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-  const name = m ? decodeURIComponent(m[1]) : (mime ?? "").includes("pdf") ? "ata.pdf" : "ata";
-  return { bytes: buf, name, mime };
+  const kind = candidates[0].kind;
+  if (kind === "onedrive") throw new Error(`O OneDrive não entregou o arquivo (${lastError}). O link precisa estar compartilhado como "Qualquer pessoa com o link" — ou envie o PDF pelo botão de upload.`);
+  if (kind === "gdrive") throw new Error(`O Google Drive não entregou o arquivo (${lastError}). Arquivos restritos ao grupo não podem ser baixados pelo app — envie o PDF pelo botão de upload.`);
+  throw new Error(`Falha ao baixar o arquivo (${lastError}).`);
 }
