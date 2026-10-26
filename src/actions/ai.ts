@@ -1,20 +1,21 @@
 "use server";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/types";
 import { fail } from "./_helpers";
 import { fmtDate } from "@/lib/format";
-import { callModel } from "@/lib/llm";
+import { hasLLM } from "@/lib/llm";
+import { aiCall } from "@/lib/ai-call";
 
 /**
- * Camada de IA modular (Fase 2). Usa a API da Anthropic quando ANTHROPIC_API_KEY está configurada.
+ * Camada de IA modular. Usa a API da Anthropic quando ANTHROPIC_API_KEY está configurada.
  * Regras: nunca inventar participantes, decisões ou prazos; sempre retornar rascunho para revisão humana.
  */
 
 /** Sugere ata (resumo + conteúdo) a partir de anotações/transcrição — rascunho para revisão. */
 export async function draftMinutesFromNotes(meetingId: string, notes: string): Promise<ActionResult<{ summary: string; content: string }>> {
-  await requireAdmin();
+  const s = await requireAdmin();
   if (notes.trim().length < 40) return fail("Cole anotações mais completas.");
   const supabase = await createClient();
   const [{ data: m }, { data: participants }, { data: items }] = await Promise.all([
@@ -32,7 +33,8 @@ Pautas agendadas: ${(items ?? []).map((i) => i.title).join("; ") || "não inform
 ANOTAÇÕES/TRANSCRIÇÃO:
 ${notes.slice(0, 60000)}`;
   try {
-    const text = await callModel(system, user, 3000);
+    const r = await aiCall({ client: supabase, kind: "minutes_draft", actorId: s.profile.id, meta: { meeting_id: meetingId } }, system, user, 4000);
+    const text = r.text;
     const m1 = text.match(/^RESUMO:\s*([^\n]+(?:\n(?!\n)[^\n]+)*)\n\n?/);
     const summary = m1?.[1]?.trim() ?? "";
     const content = m1 ? text.slice(m1[0].length).trim() : text.trim();
@@ -44,16 +46,14 @@ ${notes.slice(0, 60000)}`;
 
 /** Sugere categoria para uma pauta (fallback heurístico quando não há chave). */
 export async function suggestAgendaCategoryAI(title: string, description: string): Promise<ActionResult<{ category: string }>> {
+  const s = await requireMember();
   const { suggestCategory } = await import("@/lib/classify");
   const heuristic = suggestCategory(title, description);
-  if (!process.env.ANTHROPIC_API_KEY) return { ok: true, data: { category: heuristic ?? "other" } };
+  if (!hasLLM()) return { ok: true, data: { category: heuristic ?? "other" } };
   try {
-    const text = await callModel(
-      "Classifique a pauta de um comitê executivo em UMA destas categorias e responda só com a chave: strategic_decision, accountability, business_review, brainstorm, knowledge, marketing_sales, innovation, other.",
-      `Título: ${title}\nDescrição: ${description}`,
-      20,
-    );
-    const key = text.trim().toLowerCase().replace(/[^a-z_]/g, "");
+    const supabase = await createClient();
+    const r = await aiCall({ client: supabase, kind: "classify", actorId: s.profile.id }, "Classifique a pauta de um comitê executivo em UMA destas categorias e responda só com a chave: strategic_decision, accountability, business_review, brainstorm, knowledge, marketing_sales, innovation, other.", `Título: ${title}\nDescrição: ${description}`, 20);
+    const key = r.text.trim().toLowerCase().replace(/[^a-z_]/g, "");
     const valid = ["strategic_decision", "accountability", "business_review", "brainstorm", "knowledge", "marketing_sales", "innovation", "other"];
     return { ok: true, data: { category: valid.includes(key) ? key : (heuristic ?? "other") } };
   } catch {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ListTodo, FileText, Zap, CalendarDays, CheckSquare, Users, Settings, LogOut, Bell, Presentation } from "lucide-react";
+import { Home, ListTodo, FileText, Zap, CalendarDays, CheckSquare, Users, Settings, LogOut, Bell, Presentation, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import type { Profile } from "@/lib/auth";
@@ -20,6 +20,7 @@ export const ADMIN_LINKS = [
   { href: "/admin", label: "Próxima terça", icon: CalendarDays },
   { href: "/admin/tarefas", label: "Compromissos", icon: CheckSquare },
   { href: "/admin/usuarios", label: "Pessoas e empresas", icon: Users },
+  { href: "/admin/ia", label: "IA e e-mails", icon: Sparkles },
   { href: "/admin/calendario", label: "Configurações", icon: Settings },
 ];
 

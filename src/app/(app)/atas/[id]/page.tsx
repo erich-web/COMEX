@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ExternalLink, Printer, Pencil, Gavel } from "lucide-react";
+import { ExternalLink, Pencil, Gavel, FileText } from "lucide-react";
 import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todaySP } from "@/lib/dates";
@@ -39,10 +39,17 @@ export default async function ReuniaoPage({ params }: PageProps<"/atas/[id]">) {
         action={<Badge variant={m.status === "closed" ? "black" : "green"}>{MEETING_STATUS_LABELS[m.status]}</Badge>}
       >
         <div className="no-print mt-3 flex flex-wrap gap-2">
+          {minutes?.file_path ? (
+            <Button asChild variant="outline" size="sm">
+              <a href={`/anexos/ata/${id}`} target="_blank" rel="noreferrer">
+                <FileText /> {minutes.file_name ?? "Arquivo da ata"}
+              </a>
+            </Button>
+          ) : null}
           {minutes?.drive_url ? (
             <Button asChild variant="outline" size="sm">
               <a href={minutes.drive_url} target="_blank" rel="noreferrer">
-                <ExternalLink /> Abrir no Drive
+                <ExternalLink /> Documento original
               </a>
             </Button>
           ) : null}

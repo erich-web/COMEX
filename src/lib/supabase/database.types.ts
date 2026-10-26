@@ -412,6 +412,56 @@ export type Database = {
           },
         ]
       }
+      ai_runs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          input_tokens: number | null
+          kind: string
+          meta: Json
+          model: string | null
+          ok: boolean
+          output_tokens: number | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input_tokens?: number | null
+          kind: string
+          meta?: Json
+          model?: string | null
+          ok?: boolean
+          output_tokens?: number | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input_tokens?: number | null
+          kind?: string
+          meta?: Json
+          model?: string | null
+          ok?: boolean
+          output_tokens?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_runs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       annual_targets: {
         Row: {
           expansion_contribution: number | null
@@ -578,6 +628,50 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      email_log: {
+        Row: {
+          error: string | null
+          id: string
+          kind: string
+          meta: Json
+          profile_id: string | null
+          sent_at: string
+          status: string
+          subject: string
+          to_email: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          kind: string
+          meta?: Json
+          profile_id?: string | null
+          sent_at?: string
+          status?: string
+          subject: string
+          to_email: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          kind?: string
+          meta?: Json
+          profile_id?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       growth_experiments: {
         Row: {
@@ -779,6 +873,36 @@ export type Database = {
           full_name?: string
           role?: Database["public"]["Enums"]["user_role"]
           short_name?: string | null
+        }
+        Relationships: []
+      }
+      job_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          kind: string
+          ok: boolean
+          report: Json
+          started_at: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind: string
+          ok?: boolean
+          report?: Json
+          started_at?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          ok?: boolean
+          report?: Json
+          started_at?: string
         }
         Relationships: []
       }
@@ -1022,10 +1146,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           drive_url: string | null
+          file_name: string | null
+          file_path: string | null
           id: string
           meeting_id: string
           source_notes: string | null
           status: Database["public"]["Enums"]["minutes_status"]
+          structured_at: string | null
           summary: string | null
           title: string | null
           updated_at: string
@@ -1037,10 +1164,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           drive_url?: string | null
+          file_name?: string | null
+          file_path?: string | null
           id?: string
           meeting_id: string
           source_notes?: string | null
           status?: Database["public"]["Enums"]["minutes_status"]
+          structured_at?: string | null
           summary?: string | null
           title?: string | null
           updated_at?: string
@@ -1052,10 +1182,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           drive_url?: string | null
+          file_name?: string | null
+          file_path?: string | null
           id?: string
           meeting_id?: string
           source_notes?: string | null
           status?: Database["public"]["Enums"]["minutes_status"]
+          structured_at?: string | null
           summary?: string | null
           title?: string | null
           updated_at?: string
@@ -1235,6 +1368,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean
+          notify_email: boolean
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           short_name: string | null
@@ -1247,6 +1381,7 @@ export type Database = {
           full_name?: string
           id: string
           is_active?: boolean
+          notify_email?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           short_name?: string | null
@@ -1259,6 +1394,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          notify_email?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           short_name?: string | null

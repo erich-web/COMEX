@@ -1,20 +1,12 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isoWeek, todaySP, weekStart } from "@/lib/dates";
+import { readSettings } from "@/lib/settings";
 import type { Tables } from "@/lib/types";
 
 export const getSettings = cache(async () => {
   const supabase = await createClient();
-  const { data } = await supabase.from("app_settings").select("key,value");
-  const map: Record<string, unknown> = {};
-  (data ?? []).forEach((r) => (map[r.key] = r.value));
-  return {
-    calendar: (map.calendar ?? { weekday: 2, time: "09:00", duration_minutes: 180 }) as { weekday: number; time: string; duration_minutes: number },
-    agendaDeadline: (map.agenda_deadline ?? { weekday: 5, time: "17:00", label: "Sexta-feira até 17h" }) as { weekday: number; time: string; label: string },
-    prepDeadline: (map.prep_deadline ?? { weekday: 1, time: "18:00", label: "Segunda-feira até 18h" }) as { weekday: number; time: string; label: string },
-    goal2030: (map.goal_2030 ?? { year: 2030, revenue_target: 200000000 }) as { year: number; revenue_target: number; label?: string },
-    defaultBlocks: (map.default_blocks ?? []) as { order: number; kind: string; title: string; minutes: number }[],
-  };
+  return readSettings(supabase);
 });
 
 /** Próxima reunião (preparando/publicada/em andamento), garantindo que exista. */

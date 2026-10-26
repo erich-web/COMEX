@@ -10,7 +10,7 @@ export const metadata = { title: "Ata e decisões" };
 
 export default async function AtaPage({ params }: PageProps<"/admin/reunioes/[id]/ata">) {
   const { id } = await params;
-  await requireAdmin();
+  const s = await requireAdmin();
   const supabase = await createClient();
   const [{ data: m }, { data: decisions }, { data: items }, profiles, units] = await Promise.all([
     supabase.from("meetings").select("*, minutes:meeting_minutes(*)").eq("id", id).maybeSingle(),
@@ -24,20 +24,36 @@ export default async function AtaPage({ params }: PageProps<"/admin/reunioes/[id
     m.minutes?.content ||
     `COMEX — ${fmtDate(m.series_date, { day: "2-digit", month: "2-digit", year: "numeric" })}, 9h.\n\nPARTICIPANTES\n\n\nPAUTAS DISCUTIDAS\n${(items ?? []).map((i, k) => `${k + 1}. ${i.title} (${i.presenter?.short_name ?? i.author?.short_name ?? ""})`).join("\n")}\n\nDECISÕES\n${(decisions ?? []).map((d, k) => `${k + 1}. ${d.title}${d.owner?.short_name ? ` — ${d.owner.short_name}` : ""}${d.due_date ? ` (até ${fmtDate(d.due_date, { day: "2-digit", month: "2-digit" })})` : ""}`).join("\n")}\n\nENCAMINHAMENTOS\n`;
 
+  const people = profiles.map((p) => ({ id: p.id, name: p.short_name ?? p.full_name }));
+  const unitList = units.map((u) => ({ id: u.id, name: u.name }));
+
   return (
     <div className="fade-in">
       <PageHeader title="Ata e decisões" label={`COMEX ${fmtDate(m.series_date, { day: "2-digit", month: "long", year: "numeric" })}`} back={`/admin/reunioes/${id}`} />
       <Container className="space-y-5 py-4">
+        <MinutesEditor
+          meetingId={id}
+          userId={s.profile.id}
+          initial={{
+            title: m.minutes?.title ?? m.title,
+            summary: m.minutes?.summary ?? "",
+            content: skeleton,
+            source_notes: m.minutes?.source_notes ?? "",
+            drive_url: m.minutes?.drive_url ?? "",
+            status: m.minutes?.status ?? "draft",
+            file_name: m.minutes?.file_name ?? null,
+            has_file: !!m.minutes?.file_path,
+            structured_at: m.minutes?.structured_at ?? null,
+          }}
+          profiles={people}
+          units={unitList}
+        />
         <DecisionsPanel
           meetingId={id}
           decisions={(decisions ?? []).map((d) => ({ id: d.id, title: d.title, description: d.description, owner: d.owner?.short_name ?? null, due_date: d.due_date, task: d.task?.[0] ?? null }))}
           items={(items ?? []).map((i) => ({ id: i.id, title: i.title }))}
-          profiles={profiles.map((p) => ({ id: p.id, name: p.short_name ?? p.full_name }))}
-          units={units.map((u) => ({ id: u.id, name: u.name }))}
-        />
-        <MinutesEditor
-          meetingId={id}
-          initial={{ title: m.minutes?.title ?? m.title, summary: m.minutes?.summary ?? "", content: skeleton, source_notes: m.minutes?.source_notes ?? "", drive_url: m.minutes?.drive_url ?? "", status: m.minutes?.status ?? "draft" }}
+          profiles={people}
+          units={unitList}
         />
       </Container>
     </div>

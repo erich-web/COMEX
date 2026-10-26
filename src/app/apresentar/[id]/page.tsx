@@ -5,7 +5,7 @@ import { getProfiles, getSettings, getUnits, getUnitsRevenueSnapshot } from "@/l
 import { computeSchedule } from "@/lib/agenda";
 import { clockMinutesSP, todaySP } from "@/lib/dates";
 import { CATEGORY_LABELS } from "@/lib/constants";
-import { Presenter } from "./presenter";
+import { Presenter, type PreviousMinutes } from "./presenter";
 
 export const metadata = { title: "Modo reunião" };
 
@@ -16,7 +16,7 @@ export default async function ApresentarPage({ params }: PageProps<"/apresentar/
   const { data: m } = await supabase.from("meetings").select("*, prompt:weekly_prompts(text)").eq("id", id).maybeSingle();
   if (!m) notFound();
   const today = todaySP();
-  const [{ data: blocks }, { data: items }, { data: decisions }, { data: lastClosed }, settings, profiles, units] = await Promise.all([
+  const [{ data: blocks }, { data: items }, { data: decisions }, { data: last }, settings, profiles, units] = await Promise.all([
     supabase.from("meeting_blocks").select("*").eq("meeting_id", id).order("sort_order"),
     supabase
       .from("agenda_items")
@@ -26,16 +26,20 @@ export default async function ApresentarPage({ params }: PageProps<"/apresentar/
       .is("deleted_at", null)
       .order("sort_order"),
     supabase.from("meeting_decisions").select("id,title,owner:profiles!meeting_decisions_owner_id_fkey(short_name),due_date").eq("meeting_id", id).order("created_at"),
-    supabase.from("meetings").select("id,series_date").eq("status", "closed").lt("series_date", m.series_date).order("series_date", { ascending: false }).limit(1).maybeSingle(),
+    // última reunião realizada (encerrada ou esquecida "em andamento"), com a ata
+    supabase.from("meetings").select("id,series_date,title,minutes:meeting_minutes(title,summary,content,status,file_name,file_path,drive_url)").in("status", ["closed", "in_progress"]).lt("series_date", m.series_date).order("series_date", { ascending: false }).limit(1).maybeSingle(),
     getSettings(),
     getProfiles(),
     getUnits(),
   ]);
   // accountability: tarefas abertas/atrasadas por pessoa
-  const { data: openTasks } = await supabase.from("tasks").select("id,title,due_date,status,owner_id,meeting_id,owner:profiles!tasks_owner_id_fkey(short_name),unit:business_units(name)").is("deleted_at", null).not("status", "in", '("done","cancelled")').order("due_date", { ascending: true, nullsFirst: false }).limit(400);
-  const { data: doneSince } = lastClosed
-    ? await supabase.from("tasks").select("id,title,owner:profiles!tasks_owner_id_fkey(short_name)").eq("status", "done").gte("completed_at", lastClosed.series_date).is("deleted_at", null).order("completed_at", { ascending: false }).limit(40)
-    : { data: [] };
+  const { data: openTasks } = await supabase.from("tasks").select("id,title,due_date,status,owner_id,meeting_id,owner:profiles!tasks_owner_id_fkey(short_name),legacy_owner_text,unit:business_units(name)").is("deleted_at", null).not("status", "in", '("done","cancelled")').order("due_date", { ascending: true, nullsFirst: false }).limit(400);
+  const [{ data: doneSince }, { data: lastDecisions }] = last
+    ? await Promise.all([
+        supabase.from("tasks").select("id,title,owner:profiles!tasks_owner_id_fkey(short_name)").eq("status", "done").gte("completed_at", last.series_date).is("deleted_at", null).order("completed_at", { ascending: false }).limit(40),
+        supabase.from("meeting_decisions").select("title,due_date,owner:profiles!meeting_decisions_owner_id_fkey(short_name),task:tasks(status)").eq("meeting_id", last.id).order("created_at"),
+      ])
+    : [{ data: [] }, { data: [] }];
 
   const reviewUnits = units.filter((u) => m.review_unit_ids.includes(u.id));
   const snapshot = await getUnitsRevenueSnapshot(reviewUnits.map((u) => u.id));
@@ -54,9 +58,27 @@ export default async function ApresentarPage({ params }: PageProps<"/apresentar/
     byOwner.set(key, e);
   }
 
+  const previous: PreviousMinutes | null = last
+    ? {
+        id: last.id,
+        series_date: last.series_date,
+        title: last.minutes?.title || last.title,
+        summary: last.minutes?.summary ?? null,
+        hasContent: !!last.minutes?.content?.trim(),
+        excerpt: last.minutes?.content?.trim() ? last.minutes.content.slice(0, 1200) : null,
+        fileName: last.minutes?.file_name ?? null,
+        hasFile: !!last.minutes?.file_path,
+        driveUrl: last.minutes?.drive_url ?? null,
+        decisions: (lastDecisions ?? []).map((d) => ({ title: d.title, owner: d.owner?.short_name ?? null, due_date: d.due_date, done: d.task?.[0] ? d.task[0].status === "done" : null })),
+        openTasks: (openTasks ?? [])
+          .filter((t) => t.meeting_id === last.id)
+          .map((t) => ({ title: t.title, owner: t.owner?.short_name ?? t.legacy_owner_text ?? "sem responsável", due_date: t.due_date, late: !!t.due_date && t.due_date < today })),
+      }
+    : null;
+
   return (
     <Presenter
-      meeting={{ id: m.id, title: m.title, series_date: m.series_date, status: m.status, startClock: schedule.blocks[0]?.startClock ?? "09:00", endClock: schedule.endClock, prompt: m.prompt?.text ?? null }}
+      meeting={{ id: m.id, title: m.title, series_date: m.series_date, status: m.status, startClock: schedule.blocks[0]?.startClock ?? "09:00", endClock: schedule.endClock, endMin: schedule.endMin, prompt: m.prompt?.text ?? null }}
       goal={settings.goal2030.revenue_target}
       schedule={schedule}
       items={(items ?? []).map((i) => ({
@@ -86,6 +108,7 @@ export default async function ApresentarPage({ params }: PageProps<"/apresentar/
       })}
       profiles={profiles.map((p) => ({ id: p.id, name: p.short_name ?? p.full_name }))}
       units={units.map((u) => ({ id: u.id, name: u.name }))}
+      previous={previous}
     />
   );
 }
